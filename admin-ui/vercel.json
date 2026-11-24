@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "name": "meocung-medusa-admin",
   "cleanUrls": true,
-  "rewrites": [
+  "outputDirectory": ".",
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
