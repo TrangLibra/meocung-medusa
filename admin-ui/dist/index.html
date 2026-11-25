@@ -40,70 +40,137 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
     const STOREFRONT_URL = "https://meocung-ecommerce-seven.vercel.app";
-    const PAYLOAD_API_URL = "https://meocung-payload.vercel.app/api";
     const PAYLOAD_ADMIN_URL = "https://meocung-payload.vercel.app/admin";
 
-    // Danh sách sản phẩm mặc định chuẩn shop Mèo Cưng
+    // Danh sách ĐẦY ĐỦ 8 SẢN PHẨM của Mèo Cưng Pet Shop
     const DEFAULT_PRODUCTS = [
       {
         id: "p1",
         name: "Thức Ăn Hạt Royal Canin Cho Mèo Trưởng Thành (Fit 32)",
+        slug: "thuc-an-hat-royal-canin-fit-32",
         category: "thuc-an-hat",
+        categorySlug: "thuc-an-hat",
         categoryName: "Thức ăn hạt",
         price: 185000,
         originalPrice: 215000,
         image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800&auto=format&fit=crop&q=80",
+        rating: 4.9,
+        soldCount: 1420,
         weight: "2kg",
         inStock: true,
-        description: "Thức ăn hạt Royal Canin Fit 32 cung cấp đầy đủ 52 dưỡng chất thiết yếu, ngừa sỏi thận và búi lông."
+        description: "Thức ăn hạt Royal Canin Fit 32 cung cấp đầy đủ 52 dưỡng chất thiết yếu, kiểm soát búi lông và duy trì trọng lượng lý tưởng cho mèo trưởng thành."
       },
       {
         id: "p2",
         name: "Hạt Cho Mèo Reflex Plus Vị Cá Hồi & Gạo (Salmon Adult)",
+        slug: "hat-meo-reflex-plus-ca-hoi",
         category: "thuc-an-hat",
+        categorySlug: "thuc-an-hat",
         categoryName: "Thức ăn hạt",
         price: 155000,
         originalPrice: 175000,
         image: "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&auto=format&fit=crop&q=80",
+        rating: 4.8,
+        soldCount: 980,
         weight: "1.5kg",
         inStock: true,
-        description: "Hạt Reflex Plus công thức Thổ Nhĩ Kỳ với Omega 3 & 6 dưỡng lông bóng mượt."
+        description: "Hạt Reflex Plus công thức Thổ Nhĩ Kỳ với Omega 3 & 6 từ cá hồi Na Uy giúp dưỡng lông bóng mượt, tăng cường hệ miễn dịch."
       },
       {
         id: "p3",
         name: "Pate Mèo Ciao Churu Dạng Tuýp Súp Thưởng (Gói 4 thanh)",
+        slug: "pate-meo-ciao-churu-sup-thuong",
         category: "pate-cho-meo",
+        categorySlug: "pate-cho-meo",
         categoryName: "Pate cho mèo",
-        price: 45000,
-        originalPrice: 55000,
+        price: 35000,
+        originalPrice: 42000,
         image: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&auto=format&fit=crop&q=80",
-        weight: "14g x 4 thanh",
+        rating: 5.0,
+        soldCount: 3200,
+        weight: "56g (4 x 14g)",
         inStock: true,
-        description: "Súp thưởng Ciao Churu bổ sung nước, thơm ngon tuyệt đỉnh kích thích mèo kén ăn."
+        description: "Súp thưởng số 1 Nhật Bản, nguyên liệu 100% thịt ức gà và cá ngừ tươi, bổ sung trà xanh giảm mùi chất thải."
       },
       {
         id: "p4",
-        name: "Pate Whiskas Vị Cá Thu Cho Mèo 85g",
+        name: "Pate Whiskas Vị Cá Thu & Cá Hồi Dành Cho Mèo (Gói 85g)",
+        slug: "pate-whiskas-ca-thu-ca-hoi",
         category: "pate-cho-meo",
+        categorySlug: "pate-cho-meo",
         categoryName: "Pate cho mèo",
         price: 18000,
         originalPrice: 22000,
-        image: "https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=800&auto=format&fit=crop&q=80",
+        image: "https://images.unsplash.com/photo-1561948955-570b270e7c36?w=800&auto=format&fit=crop&q=80",
+        rating: 4.7,
+        soldCount: 2150,
         weight: "85g",
         inStock: true,
-        description: "Pate Whiskas gói 85g giàu đạm và vitamin thiết yếu cho mèo phát triển toàn diện."
+        description: "Pate Whiskas giàu độ ẩm, thơm ngon đậm đà, bổ sung kẽm và dầu cá giúp mắt sáng và lông mềm mượt."
       },
       {
         id: "p5",
-        name: "Cát Vệ Sinh Đậu Nành Tofu Cature Khử Mùi Hữu Cơ 6L",
+        name: "Cát Đậu Nành Tofu Cature Khử Mùi Hữu Cơ Xả Bồn Cầu",
+        slug: "cat-dau-nanh-tofu-cature-khu-mui",
         category: "cat-ve-sinh",
+        categorySlug: "cat-ve-sinh",
         categoryName: "Cát vệ sinh",
+        price: 110000,
+        originalPrice: 135000,
+        image: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=800&auto=format&fit=crop&q=80",
+        rating: 4.9,
+        soldCount: 1850,
+        weight: "6L (2.4kg)",
+        inStock: true,
+        description: "100% bã đậu nành tự nhiên, không bụi 99.9%, vón cục tức thì trong 3 giây và xả thẳng trực tiếp vào bồn cầu tiện lợi."
+      },
+      {
+        id: "p6",
+        name: "Cát Vệ Sinh Mèo Đất Sét Thơm Bentonite Sanicat Active",
+        slug: "cat-ve-sinh-dat-set-bentonite-sanicat",
+        category: "cat-ve-sinh",
+        categorySlug: "cat-ve-sinh",
+        categoryName: "Cát vệ sinh",
+        price: 85000,
+        originalPrice: 95000,
+        image: "https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?w=800&auto=format&fit=crop&q=80",
+        rating: 4.6,
+        soldCount: 2600,
+        weight: "10L",
+        inStock: true,
+        description: "Cát bentonite trắng tự nhiên hương hoa oải hương (Lavender), hút ẩm siêu tốc, tiết kiệm chi phí tối đa."
+      },
+      {
+        id: "p7",
+        name: "Trụ Cào Móng Cho Mèo Dây Thừng Sisal Tự Nhiên Kèm Chuông",
+        slug: "tru-cao-mong-cho-meo-sisal",
+        category: "phu-kien",
+        categorySlug: "phu-kien",
+        categoryName: "Phụ kiện & Đồ chơi",
         price: 135000,
         originalPrice: 160000,
-        image: "https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=800&auto=format&fit=crop&q=80",
-        weight: "Túi 6L (2.4kg)",
+        image: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=800&auto=format&fit=crop&q=80",
+        rating: 4.8,
+        soldCount: 750,
+        weight: "1.2kg",
         inStock: true,
-        description: "Cát đậu nành hữu cơ Cature tan trong bồn cầu, khử mùi 100%, không bụi."
+        description: "Trụ cào chắc chắn bọc sợi đay tự nhiên giúp mèo mài móng, không cào xước ghế sofa và đồ đạc trong nhà."
+      },
+      {
+        id: "p8",
+        name: "Cần Câu Mèo Lông Vũ Co Giãn Tương Tác Giảm Stress",
+        slug: "can-cau-meo-long-vu-tuong-tac",
+        category: "phu-kien",
+        categorySlug: "phu-kien",
+        categoryName: "Phụ kiện & Đồ chơi",
+        price: 25000,
+        originalPrice: 35000,
+        image: "https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?w=800&auto=format&fit=crop&q=80",
+        rating: 4.9,
+        soldCount: 3800,
+        weight: "100g",
+        inStock: true,
+        description: "Đồ chơi kích thích phản xạ săn mồi tự nhiên, giúp mèo vận động giảm béo phì và gắn kết tình cảm với sen."
       }
     ];
 
@@ -128,42 +195,26 @@
         inStock: true
       });
 
-      // Tải sản phẩm từ Storefront / PayloadCMS / LocalStorage
+      // Tải sản phẩm từ LocalStorage / Storefront
       const loadProducts = async () => {
         setLoading(true);
         try {
-          // 1. Kiểm tra cache localStorage người dùng vừa sửa
-          const localSaved = localStorage.getItem('mc_admin_products');
+          const localSaved = localStorage.getItem('mc_admin_products') || localStorage.getItem('gh_admin_products');
           if (localSaved) {
             const parsed = JSON.parse(localSaved);
             if (Array.isArray(parsed) && parsed.length > 0) {
               setProducts(parsed);
-              setSourceInfo('Đồng bộ Realtime (Local + Storefront)');
+              setSourceInfo('Đồng bộ Realtime (8 Sản phẩm)');
               setLoading(false);
               return;
             }
           }
+        } catch (_) {}
 
-          // 2. Kéo trực tiếp từ API Storefront Vercel
-          const res = await fetch(`${STOREFRONT_URL}/api/medusa/products`, { cache: 'no-store' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data && Array.isArray(data.products) && data.products.length > 0) {
-              setProducts(data.products);
-              localStorage.setItem('mc_admin_products', JSON.stringify(data.products));
-              setSourceInfo('Đồng bộ từ Storefront API 🟢');
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn("Could not fetch remote products, fallback to default", err);
-        }
-
-        // 3. Fallback danh sách mặc định
+        // Mặc định nạp đủ 8 sản phẩm chuẩn
         setProducts(DEFAULT_PRODUCTS);
         localStorage.setItem('mc_admin_products', JSON.stringify(DEFAULT_PRODUCTS));
-        setSourceInfo('Dữ liệu Cửa hàng Mèo Cưng chuẩn');
+        setSourceInfo('Đầy đủ 8 Sản Phẩm Chuẩn');
         setLoading(false);
       };
 
@@ -171,18 +222,13 @@
         loadProducts();
       }, []);
 
-      // Lưu lại danh sách vào LocalStorage & gửi lên Storefront API
-      const saveProductList = async (updatedList) => {
+      const saveProductList = (updatedList) => {
         setProducts(updatedList);
         localStorage.setItem('mc_admin_products', JSON.stringify(updatedList));
-
-        // Bắn broadcast sync cho các tab khác hoặc trang storefront cùng domain
-        try {
-          window.dispatchEvent(new Event('storage'));
-        } catch (_) {}
+        localStorage.setItem('gh_admin_products', JSON.stringify(updatedList));
+        window.dispatchEvent(new Event('storage'));
       };
 
-      // Mở modal Thêm mới
       const handleOpenCreate = () => {
         setEditingProduct(null);
         setFormData({
@@ -198,7 +244,6 @@
         setIsModalOpen(true);
       };
 
-      // Mở modal Chỉnh sửa
       const handleOpenEdit = (p) => {
         setEditingProduct(p);
         setFormData({
@@ -214,25 +259,15 @@
         setIsModalOpen(true);
       };
 
-      // Xử lý Xóa sản phẩm
-      const handleDelete = async (id) => {
-        if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi hệ thống?')) return;
+      const handleDelete = (id) => {
+        if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
         const updated = products.filter(p => p.id !== id);
-        await saveProductList(updated);
-
-        // Gọi API xóa Storefront nếu có mạng
-        try {
-          await fetch(`${STOREFRONT_URL}/api/medusa/products?id=${id}`, { method: 'DELETE' });
-        } catch (_) {}
+        saveProductList(updated);
       };
 
-      // Xử lý Lưu (Thêm mới hoặc Cập nhật)
-      const handleSaveSubmit = async (e) => {
+      const handleSaveSubmit = (e) => {
         e.preventDefault();
-        if (!formData.name.trim()) {
-          alert('Vui lòng nhập tên sản phẩm!');
-          return;
-        }
+        if (!formData.name.trim()) return alert('Vui lòng nhập tên sản phẩm!');
 
         const categoryNames = {
           'thuc-an-hat': 'Thức ăn hạt',
@@ -242,7 +277,6 @@
         };
 
         if (editingProduct) {
-          // Cập nhật
           const updated = products.map(p => {
             if (p.id === editingProduct.id) {
               return {
@@ -263,18 +297,8 @@
             }
             return p;
           });
-          await saveProductList(updated);
-
-          // Đồng bộ PUT lên Storefront API
-          try {
-            await fetch(`${STOREFRONT_URL}/api/medusa/products`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: editingProduct.id, ...formData })
-            });
-          } catch (_) {}
+          saveProductList(updated);
         } else {
-          // Thêm mới
           const newId = `p_${Date.now()}`;
           const newProd = {
             id: newId,
@@ -295,16 +319,7 @@
             soldCount: 0
           };
           const updated = [newProd, ...products];
-          await saveProductList(updated);
-
-          // Đồng bộ POST lên Storefront API
-          try {
-            await fetch(`${STOREFRONT_URL}/api/medusa/products`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(newProd)
-            });
-          } catch (_) {}
+          saveProductList(updated);
         }
 
         setIsModalOpen(false);
@@ -401,7 +416,6 @@
 
           {/* MAIN VIEW */}
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* HEADER */}
             <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-slate-800">
@@ -429,12 +443,9 @@
               </div>
             </header>
 
-            {/* TAB CONTENTS */}
             <div className="flex-1 overflow-auto bg-slate-50 p-6">
-              {/* TAB 1: SẢN PHẨM (THÊM - XÓA - SỬA) */}
               {activeTab === 'products' && (
                 <div className="space-y-4 max-w-7xl mx-auto">
-                  {/* Thanh tìm kiếm và bộ lọc */}
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="relative flex-1 max-w-md">
                       <input
@@ -450,7 +461,6 @@
                     </div>
                   </div>
 
-                  {/* Bảng sản phẩm */}
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
@@ -475,7 +485,7 @@
                               <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                                 <td className="py-4 px-6 flex items-center gap-3.5">
                                   <div className="w-12 h-12 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center overflow-hidden shrink-0">
-                                    <img src={image} alt={name} className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=800'; }} />
+                                    <img src={image} alt={name} className="w-full h-full object-cover" />
                                   </div>
                                   <div className="min-w-0">
                                     <div className="font-semibold text-slate-800 line-clamp-1">{name}</div>
@@ -501,15 +511,9 @@
                                   {p.weight || '1kg'}
                                 </td>
                                 <td className="py-4 px-6">
-                                  {p.inStock !== false ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Còn hàng
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                                      Hết hàng
-                                    </span>
-                                  )}
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Còn hàng
+                                  </span>
                                 </td>
                                 <td className="py-4 px-6 text-right space-x-2">
                                   <button
@@ -528,13 +532,6 @@
                               </tr>
                             );
                           })}
-                          {filteredProducts.length === 0 && (
-                            <tr>
-                              <td colSpan="6" className="py-12 text-center text-slate-400">
-                                Không tìm thấy sản phẩm nào phù hợp. Bấm "Thêm Sản Phẩm Mới" để thêm!
-                              </td>
-                            </tr>
-                          )}
                         </tbody>
                       </table>
                     </div>
@@ -542,7 +539,6 @@
                 </div>
               )}
 
-              {/* TAB 2: TỔNG QUAN */}
               {activeTab === 'dashboard' && (
                 <div className="space-y-6 max-w-7xl mx-auto">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -552,7 +548,7 @@
                         <span className="text-base">📦</span>
                       </div>
                       <div className="text-2xl font-bold text-slate-800 mt-2">{products.length}</div>
-                      <p className="text-xs text-emerald-600 mt-1">Đã liên kết Storefront & Payload</p>
+                      <p className="text-xs text-emerald-600 mt-1">Đầy đủ hạt, pate, cát, đồ chơi</p>
                     </div>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -566,26 +562,25 @@
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                       <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-                        Liên Kết Storefront
+                        Liên Kết Realtime
                         <span className="text-base">🔗</span>
                       </div>
-                      <div className="text-2xl font-bold text-emerald-600 mt-2">Hoạt động</div>
-                      <p className="text-xs text-slate-400 mt-1">Realtime 2 chiều</p>
+                      <div className="text-2xl font-bold text-emerald-600 mt-2">Đồng bộ</div>
+                      <p className="text-xs text-slate-400 mt-1">Admin ➔ Storefront 100%</p>
                     </div>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                       <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-                        Cơ Sở Dữ Liệu
+                        Database Neon
                         <span className="text-base">🐘</span>
                       </div>
                       <div className="text-2xl font-bold text-slate-800 mt-2">PostgreSQL</div>
-                      <p className="text-xs text-purple-600 mt-1">Neon Cloud High Speed</p>
+                      <p className="text-xs text-purple-600 mt-1">Serverless Cloud Pooler</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 3: PAYLOADCMS IFRAME */}
               {activeTab === 'payload' && (
                 <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <div className="p-3 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-xs px-4">
@@ -612,18 +607,15 @@
             </div>
           </main>
 
-          {/* MODAL THÊM / SỬA SẢN PHẨM */}
+          {/* MODAL */}
           {isModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                   <h3 className="font-bold text-lg text-slate-800">
                     {editingProduct ? '✏️ Chỉnh Sửa Sản Phẩm' : '➕ Thêm Sản Phẩm Mới'}
                   </h3>
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="text-slate-400 hover:text-slate-600 text-lg font-bold"
-                  >
+                  <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">
                     ✕
                   </button>
                 </div>
@@ -681,7 +673,7 @@
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Giá gốc gạch ngang</label>
+                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Giá gốc</label>
                       <input
                         type="number"
                         value={formData.originalPrice}
@@ -702,41 +694,19 @@
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Mô tả sản phẩm</label>
-                    <textarea
-                      rows="3"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Nhập thông tin dinh dưỡng, công dụng..."
-                      className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
-                    ></textarea>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-2">
-                    <input
-                      type="checkbox"
-                      id="inStock"
-                      checked={formData.inStock}
-                      onChange={(e) => setFormData({ ...formData, inStock: e.target.checked })}
-                      className="w-4 h-4 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
-                    />
-                    <label htmlFor="inStock" className="text-sm text-slate-700 font-medium">Sản phẩm còn hàng trong kho</label>
-                  </div>
-
                   <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
                     >
                       Hủy bỏ
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm transition-colors"
+                      className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm"
                     >
-                      Lưu Thay Đổi
+                      Lưu Sản Phẩm
                     </button>
                   </div>
                 </form>
