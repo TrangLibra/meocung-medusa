@@ -7,12 +7,13 @@
         <link rel="icon" href="data:," data-placeholder-favicon />
         <script>
           const MEDUSA_BACKEND = "https://meocung-medusa.onrender.com";
+
+          // Intercept fetch
           const originalFetch = window.fetch;
           window.fetch = async function(url, options = {}) {
             let reqUrl = url;
             options.headers = options.headers || {};
-            
-            // Lấy token đã lưu nếu có
+
             const token = localStorage.getItem('medusa_auth_token');
             if (token) {
               if (options.headers instanceof Headers) {
@@ -29,22 +30,63 @@
               }
             }
 
-            const response = await originalFetch(reqUrl, options);
+            try {
+              const response = await originalFetch(reqUrl, options);
 
-            // Bắt token khi đăng nhập thành công
-            if (typeof reqUrl === 'string' && reqUrl.includes('/auth/user/emailpass')) {
-              try {
-                const clone = response.clone();
-                const data = await clone.json();
-                if (data && data.token) {
-                  localStorage.setItem('medusa_auth_token', data.token);
-                  document.cookie = `_medusa_jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-                }
-              } catch (_) {}
+              if (typeof reqUrl === 'string' && reqUrl.includes('/auth/user/emailpass')) {
+                try {
+                  const clone = response.clone();
+                  const data = await clone.json();
+                  if (data && data.token) {
+                    localStorage.setItem('medusa_auth_token', data.token);
+                    document.cookie = `_medusa_jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+                    window.location.replace('/');
+                  }
+                } catch (_) {}
+              }
+
+              return response;
+            } catch (err) {
+              console.error('Fetch error:', err);
+              throw err;
             }
-
-            return response;
           };
+
+          // Fallback direct login listener when button clicked
+          document.addEventListener('click', async function(e) {
+            const btn = e.target.closest('button');
+            if (btn && btn.innerText && btn.innerText.includes('Continue with Email')) {
+              const emailInput = document.querySelector('input[type="email"], input[name="email"]');
+              const passwordInput = document.querySelector('input[type="password"], input[name="password"]');
+
+              if (emailInput && passwordInput && emailInput.value && passwordInput.value) {
+                btn.innerText = 'Đang đăng nhập...';
+                try {
+                  const res = await originalFetch(MEDUSA_BACKEND + '/auth/user/emailpass', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: emailInput.value.trim(),
+                      password: passwordInput.value
+                    })
+                  });
+
+                  const data = await res.json();
+                  if (data.token) {
+                    localStorage.setItem('medusa_auth_token', data.token);
+                    document.cookie = `_medusa_jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+                    window.location.replace('/');
+                  } else {
+                    alert('Đăng nhập thất bại: ' + (data.message || 'Sai tài khoản hoặc mật khẩu!'));
+                    btn.innerText = 'Continue with Email';
+                  }
+                } catch (err) {
+                  alert('Lỗi kết nối máy chủ: ' + err.message);
+                  btn.innerText = 'Continue with Email';
+                }
+              }
+            }
+          });
         </script>
         <script type="module" crossorigin src="/assets/index-DfD3voTe.js"></script>
         <link rel="stylesheet" crossorigin href="/assets/index-BoaOhaCh.css">
