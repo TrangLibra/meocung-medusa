@@ -12,6 +12,18 @@
       "destination": "/assets/$1"
     },
     {
+      "source": "/auth/(.*)",
+      "destination": "https://meocung-medusa.onrender.com/auth/$1"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "https://meocung-medusa.onrender.com/admin/$1"
+    },
+    {
+      "source": "/store/(.*)",
+      "destination": "https://meocung-medusa.onrender.com/store/$1"
+    },
+    {
       "source": "/app/(.*)",
       "destination": "/index.html"
     },
@@ -20,7 +32,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/",
+      "source": "/login",
       "destination": "/index.html"
     },
     {

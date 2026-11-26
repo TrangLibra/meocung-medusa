@@ -6,9 +6,7 @@
         <title>Medusa Admin - Mèo Cưng</title>
         <link rel="icon" href="data:," data-placeholder-favicon />
         <script>
-          const MEDUSA_BACKEND = "https://meocung-medusa.onrender.com";
-
-          // Intercept fetch
+          // Same-origin proxy: tất cả request đi qua domain Vercel hiện tại
           const originalFetch = window.fetch;
           window.fetch = async function(url, options = {}) {
             let reqUrl = url;
@@ -20,13 +18,6 @@
                 options.headers.set('Authorization', 'Bearer ' + token);
               } else {
                 options.headers['Authorization'] = 'Bearer ' + token;
-              }
-            }
-
-            if (typeof reqUrl === 'string') {
-              if (reqUrl.startsWith('/admin') || reqUrl.startsWith('/auth') || reqUrl.startsWith('/store')) {
-                reqUrl = MEDUSA_BACKEND + reqUrl;
-                options.credentials = options.credentials || 'include';
               }
             }
 
@@ -52,17 +43,18 @@
             }
           };
 
-          // Fallback direct login listener when button clicked
+          // Handle click
           document.addEventListener('click', async function(e) {
             const btn = e.target.closest('button');
-            if (btn && btn.innerText && btn.innerText.includes('Continue with Email')) {
+            if (btn && btn.innerText && (btn.innerText.includes('Continue with Email') || btn.innerText.includes('Đang đăng nhập'))) {
               const emailInput = document.querySelector('input[type="email"], input[name="email"]');
               const passwordInput = document.querySelector('input[type="password"], input[name="password"]');
 
               if (emailInput && passwordInput && emailInput.value && passwordInput.value) {
                 btn.innerText = 'Đang đăng nhập...';
                 try {
-                  const res = await originalFetch(MEDUSA_BACKEND + '/auth/user/emailpass', {
+                  // Gửi qua proxy nội bộ Vercel cùng domain, KHÔNG BỊ CORS
+                  const res = await originalFetch('/auth/user/emailpass', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -81,7 +73,7 @@
                     btn.innerText = 'Continue with Email';
                   }
                 } catch (err) {
-                  alert('Lỗi kết nối máy chủ: ' + err.message);
+                  alert('Lỗi kết nối: ' + err.message);
                   btn.innerText = 'Continue with Email';
                 }
               }
