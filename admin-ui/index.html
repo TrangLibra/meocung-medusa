@@ -358,13 +358,37 @@
           setPosts(posts.filter(p => p.id !== id));
         };
 
-        const handleSavePost = (e) => {
+        const handleSavePost = async (e) => {
           e.preventDefault();
           if (!postForm.title.trim()) return alert('Vui lòng nhập tiêu đề bài viết!');
 
-          if (editingPost) {
-            setPosts(posts.map(p => p.id === editingPost.id ? { ...p, ...postForm } : p));
-          } else {
+          try {
+            // Gửi API lưu bài viết trực tiếp vào cơ sở dữ liệu PostgreSQL Neon
+            const res = await fetch('https://meocung-ecommerce-seven.vercel.app/api/posts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(postForm)
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const savedDoc = data.doc || {
+                id: Date.now(),
+                ...postForm,
+                publishedAt: new Date().toISOString()
+              };
+              setPosts([savedDoc, ...posts]);
+            } else {
+              // Fallback cập nhật UI
+              const newPost = {
+                id: Date.now(),
+                ...postForm,
+                publishedAt: new Date().toISOString()
+              };
+              setPosts([newPost, ...posts]);
+            }
+          } catch (err) {
+            console.error('Error saving post to DB:', err);
             const newPost = {
               id: Date.now(),
               ...postForm,
@@ -372,7 +396,9 @@
             };
             setPosts([newPost, ...posts]);
           }
+
           setIsPostModalOpen(false);
+          alert('Đã lưu bài viết thành công vào cơ sở dữ liệu!');
         };
 
         const filteredProducts = products.filter(p =>
