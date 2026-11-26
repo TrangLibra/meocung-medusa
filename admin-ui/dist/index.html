@@ -3,12 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mèo Cưng Admin Dashboard</title>
+  <title>Mèo Cưng Unified Admin Dashboard (Medusa + PayloadCMS - ShadCN UI)</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f97316' stroke-width='2'><path d='M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 4 .58 5.4 1 1.4 1.5 3.3 1.5 5.6 0 5.5-3.8 8.5-8.5 8.5s-8.5-3-8.5-8.5c0-2.3.5-4.2 1.5-5.6 1-1.4-.82-4.82.58-5.4 1.39-.58 4.64.26 6.42 2.26.65-.17 1.33-.26 2-.26z'/></svg>" />
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
   <script>
     tailwind.config = {
       theme: {
@@ -27,12 +38,12 @@
     }
   </script>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased m-0 p-0">
+<body class="bg-slate-50 text-slate-900 antialiased m-0 p-0 overflow-hidden">
   <div id="root">
     <div class="flex h-screen w-screen items-center justify-center bg-slate-50">
       <div class="text-center space-y-3">
         <div class="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-sm font-semibold text-slate-600">Đang khởi tạo Mèo Cưng Admin Dashboard...</p>
+        <p class="text-sm font-semibold text-slate-600">Đang khởi tạo Mèo Cưng Unified Dashboard (ShadCN Theme)...</p>
       </div>
     </div>
   </div>
@@ -42,7 +53,6 @@
     const STOREFRONT_URL = "https://meocung-ecommerce-seven.vercel.app";
     const PAYLOAD_ADMIN_URL = "https://meocung-payload.vercel.app/admin";
 
-    // Danh sách ĐẦY ĐỦ 9 SẢN PHẨM của Mèo Cưng Pet Shop
     const DEFAULT_PRODUCTS = [
       {
         id: "p_1795606037461",
@@ -51,6 +61,7 @@
         category: "thuc-an-hat",
         categorySlug: "thuc-an-hat",
         categoryName: "Thức ăn hạt",
+        vendorName: "Mèo Cưng Official",
         price: 150000,
         originalPrice: 180000,
         image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800",
@@ -67,6 +78,7 @@
         category: "thuc-an-hat",
         categorySlug: "thuc-an-hat",
         categoryName: "Thức ăn hạt",
+        vendorName: "Royal Canin Việt Nam",
         price: 185000,
         originalPrice: 215000,
         image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800&auto=format&fit=crop&q=80",
@@ -74,7 +86,7 @@
         soldCount: 1420,
         weight: "2kg",
         inStock: true,
-        description: "Thức ăn hạt Royal Canin Fit 32 cung cấp đầy đủ 52 dưỡng chất thiết yếu, kiểm soát búi lông và duy trì trọng lượng lý tưởng cho mèo trưởng thành."
+        description: "Thức ăn hạt Royal Canin Fit 32 cung cấp đầy đủ dưỡng chất thiết yếu."
       },
       {
         id: "p2",
@@ -83,6 +95,7 @@
         category: "thuc-an-hat",
         categorySlug: "thuc-an-hat",
         categoryName: "Thức ăn hạt",
+        vendorName: "Mèo Cưng Official",
         price: 155000,
         originalPrice: 175000,
         image: "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&auto=format&fit=crop&q=80",
@@ -90,7 +103,7 @@
         soldCount: 980,
         weight: "1.5kg",
         inStock: true,
-        description: "Hạt Reflex Plus công thức Thổ Nhĩ Kỳ với Omega 3 & 6 từ cá hồi Na Uy giúp dưỡng lông bóng mượt, tăng cường hệ miễn dịch."
+        description: "Hạt Reflex Plus công thức Thổ Nhĩ Kỳ với Omega 3 & 6 từ cá hồi Na Uy."
       },
       {
         id: "p3",
@@ -99,150 +112,140 @@
         category: "pate-cho-meo",
         categorySlug: "pate-cho-meo",
         categoryName: "Pate cho mèo",
-        price: 35000,
-        originalPrice: 42000,
+        vendorName: "Ciao Churu Pet Mall",
+        price: 45000,
+        originalPrice: 55000,
         image: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&auto=format&fit=crop&q=80",
         rating: 5.0,
-        soldCount: 3200,
-        weight: "56g (4 x 14g)",
+        soldCount: 3100,
+        weight: "56g",
         inStock: true,
-        description: "Súp thưởng số 1 Nhật Bản, nguyên liệu 100% thịt ức gà và cá ngừ tươi, bổ sung trà xanh giảm mùi chất thải."
+        description: "Súp thưởng Ciao Churu vị ức gà thơm ngon bổ dưỡng."
       },
       {
         id: "p4",
-        name: "Pate Whiskas Vị Cá Thu & Cá Hồi Dành Cho Mèo (Gói 85g)",
-        slug: "pate-whiskas-ca-thu-ca-hoi",
+        name: "Pate Cho Mèo Con Whiskas Vị Cá Thu & Cá Hồi",
+        slug: "pate-cho-meo-con-whiskas",
         category: "pate-cho-meo",
         categorySlug: "pate-cho-meo",
         categoryName: "Pate cho mèo",
-        price: 18000,
-        originalPrice: 22000,
-        image: "https://images.unsplash.com/photo-1561948955-570b270e7c36?w=800&auto=format&fit=crop&q=80",
+        vendorName: "Mèo Cưng Official",
+        price: 22000,
+        originalPrice: 28000,
+        image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=80",
         rating: 4.7,
-        soldCount: 2150,
+        soldCount: 2450,
         weight: "85g",
         inStock: true,
-        description: "Pate Whiskas giàu độ ẩm, thơm ngon đậm đà, bổ sung kẽm và dầu cá giúp mắt sáng và lông mềm mượt."
+        description: "Pate Whiskas dạng túi dễ ăn, bổ sung Canxi và Phốt pho."
       },
       {
         id: "p5",
-        name: "Cát Đậu Nành Tofu Cature Khử Mùi Hữu Cơ Xả Bồn Cầu",
-        slug: "cat-dau-nanh-tofu-cature-khu-mui",
+        name: "Cát Đậu Nành Tự Nhiên Cature Tofu Khử Mùi & Vón Cục Tốt",
+        slug: "cat-dau-nanh-cature-tofu",
         category: "cat-ve-sinh",
         categorySlug: "cat-ve-sinh",
         categoryName: "Cát vệ sinh",
-        price: 110000,
-        originalPrice: 135000,
-        image: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=800&auto=format&fit=crop&q=80",
+        vendorName: "Phụ Kiện Thú Cưng Sài Gòn",
+        price: 135000,
+        originalPrice: 160000,
+        image: "https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=800&auto=format&fit=crop&q=80",
         rating: 4.9,
-        soldCount: 1850,
+        soldCount: 1890,
         weight: "6L (2.4kg)",
         inStock: true,
-        description: "100% bã đậu nành tự nhiên, không bụi 99.9%, vón cục tức thì trong 3 giây và xả thẳng trực tiếp vào bồn cầu tiện lợi."
+        description: "Cát đậu nành hữu cơ 100% tự nhiên tan được trong bồn cầu."
       },
       {
         id: "p6",
-        name: "Cát Vệ Sinh Mèo Đất Sét Thơm Bentonite Sanicat Active",
-        slug: "cat-ve-sinh-dat-set-bentonite-sanicat",
+        name: "Cát Đất Sét Bentonite Mùi Cà Phê Siêu Thấm Hút (Bao 8L)",
+        slug: "cat-dat-set-bentonite-ca-phe",
         category: "cat-ve-sinh",
         categorySlug: "cat-ve-sinh",
         categoryName: "Cát vệ sinh",
-        price: 85000,
-        originalPrice: 95000,
-        image: "https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?w=800&auto=format&fit=crop&q=80",
+        vendorName: "Mèo Cưng Official",
+        price: 65000,
+        originalPrice: 85000,
+        image: "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800&auto=format&fit=crop&q=80",
         rating: 4.6,
-        soldCount: 2600,
-        weight: "10L",
+        soldCount: 4200,
+        weight: "8L",
         inStock: true,
-        description: "Cát bentonite trắng tự nhiên hương hoa oải hương (Lavender), hút ẩm siêu tốc, tiết kiệm chi phí tối đa."
+        description: "Cát đất sét bentonite hạt tròn ít bụi, khóa mùi tức thì."
       },
       {
         id: "p7",
-        name: "Trụ Cào Móng Cho Mèo Dây Thừng Sisal Tự Nhiên Kèm Chuông",
-        slug: "tru-cao-mong-cho-meo-sisal",
+        name: "Cần Câu Mèo Lông Vũ Chuông Kêu Vui Nhộn",
+        slug: "can-cau-meo-long-vu",
         category: "phu-kien",
         categorySlug: "phu-kien",
         categoryName: "Phụ kiện & Đồ chơi",
-        price: 135000,
-        originalPrice: 160000,
-        image: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=800&auto=format&fit=crop&q=80",
+        vendorName: "Phụ Kiện Thú Cưng Sài Gòn",
+        price: 35000,
+        originalPrice: 50000,
+        image: "https://images.unsplash.com/photo-1513360309081-38f076278f1d?w=800&auto=format&fit=crop&q=80",
         rating: 4.8,
-        soldCount: 750,
-        weight: "1.2kg",
+        soldCount: 890,
+        weight: "50g",
         inStock: true,
-        description: "Trụ cào chắc chắn bọc sợi đay tự nhiên giúp mèo mài móng, không cào xước ghế sofa và đồ đạc trong nhà."
+        description: "Đồ chơi tương tác kích thích vận động cho mèo cưng."
       },
       {
         id: "p8",
-        name: "Cần Câu Mèo Lông Vũ Co Giãn Tương Tác Giảm Stress",
-        slug: "can-cau-meo-long-vu-tuong-tac",
+        name: "Bàn Cào Móng Giấy Carton Gợn Sóng Cho Mèo",
+        slug: "ban-cao-mong-carton",
         category: "phu-kien",
         categorySlug: "phu-kien",
         categoryName: "Phụ kiện & Đồ chơi",
-        price: 25000,
-        originalPrice: 35000,
-        image: "https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?w=800&auto=format&fit=crop&q=80",
+        vendorName: "Mèo Cưng Official",
+        price: 75000,
+        originalPrice: 95000,
+        image: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=800&auto=format&fit=crop&q=80",
         rating: 4.9,
-        soldCount: 3800,
-        weight: "100g",
+        soldCount: 1120,
+        weight: "450g",
         inStock: true,
-        description: "Đồ chơi kích thích phản xạ săn mồi tự nhiên, giúp mèo vận động giảm béo phì và gắn kết tình cảm với sen."
+        description: "Bàn cào móng cao cấp tặng kèm gói cỏ mèo Catnip."
       }
     ];
 
-    function App() {
-      const [activeTab, setActiveTab] = useState('products');
+    function UnifiedAdminApp() {
+      const [activeTab, setActiveTab] = useState('overview');
       const [products, setProducts] = useState([]);
-      const [loading, setLoading] = useState(true);
       const [searchQuery, setSearchQuery] = useState('');
-      const [sourceInfo, setSourceInfo] = useState('Đang kết nối...');
-
-      // State cho Modal Thêm/Sửa
       const [isModalOpen, setIsModalOpen] = useState(false);
       const [editingProduct, setEditingProduct] = useState(null);
+
       const [formData, setFormData] = useState({
         name: '',
         category: 'thuc-an-hat',
-        price: 100000,
-        originalPrice: 120000,
+        vendorName: 'Mèo Cưng Official',
+        price: 150000,
+        originalPrice: 180000,
         weight: '1kg',
         image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800',
         description: '',
         inStock: true
       });
 
-      // Tải sản phẩm từ LocalStorage / Storefront
-      const loadProducts = async () => {
-        setLoading(true);
-        try {
-          const localSaved = localStorage.getItem('mc_admin_products') || localStorage.getItem('gh_admin_products');
-          if (localSaved) {
-            const parsed = JSON.parse(localSaved);
+      useEffect(() => {
+        const local = localStorage.getItem('mc_admin_products');
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
             if (Array.isArray(parsed) && parsed.length > 0) {
               setProducts(parsed);
-              setSourceInfo('Đồng bộ Realtime (8 Sản phẩm)');
-              setLoading(false);
               return;
             }
-          }
-        } catch (_) {}
-
-        // Mặc định nạp đủ 8 sản phẩm chuẩn
+          } catch(e) {}
+        }
         setProducts(DEFAULT_PRODUCTS);
         localStorage.setItem('mc_admin_products', JSON.stringify(DEFAULT_PRODUCTS));
-        setSourceInfo('Đầy đủ 8 Sản Phẩm Chuẩn');
-        setLoading(false);
-      };
-
-      useEffect(() => {
-        loadProducts();
       }, []);
 
-      const saveProductList = (updatedList) => {
-        setProducts(updatedList);
-        localStorage.setItem('mc_admin_products', JSON.stringify(updatedList));
-        localStorage.setItem('gh_admin_products', JSON.stringify(updatedList));
-        window.dispatchEvent(new Event('storage'));
+      const saveProducts = (list) => {
+        setProducts(list);
+        localStorage.setItem('mc_admin_products', JSON.stringify(list));
       };
 
       const handleOpenCreate = () => {
@@ -250,6 +253,7 @@
         setFormData({
           name: '',
           category: 'thuc-an-hat',
+          vendorName: 'Mèo Cưng Official',
           price: 150000,
           originalPrice: 180000,
           weight: '1kg',
@@ -265,10 +269,11 @@
         setFormData({
           name: p.name || p.title || '',
           category: p.categorySlug || p.category || 'thuc-an-hat',
+          vendorName: p.vendorName || 'Mèo Cưng Official',
           price: p.price || 100000,
           originalPrice: p.originalPrice || Math.round((p.price || 100000) * 1.2),
           weight: p.weight || '1kg',
-          image: p.image || p.thumbnail || 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800',
+          image: p.image || p.thumbnail || '',
           description: p.description || '',
           inStock: p.inStock !== false
         });
@@ -276,9 +281,9 @@
       };
 
       const handleDelete = (id) => {
-        if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
+        if (!confirm('Xác nhận xóa sản phẩm này khỏi hệ thống Medusa?')) return;
         const updated = products.filter(p => p.id !== id);
-        saveProductList(updated);
+        saveProducts(updated);
       };
 
       const handleSaveSubmit = (e) => {
@@ -302,427 +307,557 @@
                 category: formData.category,
                 categorySlug: formData.category,
                 categoryName: categoryNames[formData.category] || 'Sản phẩm',
+                vendorName: formData.vendorName,
                 price: Number(formData.price),
                 originalPrice: Number(formData.originalPrice),
                 weight: formData.weight,
                 image: formData.image,
-                thumbnail: formData.image,
                 description: formData.description,
                 inStock: formData.inStock
               };
             }
             return p;
           });
-          saveProductList(updated);
+          saveProducts(updated);
         } else {
-          const newId = `p_${Date.now()}`;
           const newProd = {
-            id: newId,
+            id: `p_${Date.now()}`,
             name: formData.name,
             title: formData.name,
             slug: `san-pham-${Date.now()}`,
             category: formData.category,
             categorySlug: formData.category,
             categoryName: categoryNames[formData.category] || 'Sản phẩm',
+            vendorName: formData.vendorName,
             price: Number(formData.price),
             originalPrice: Number(formData.originalPrice),
             weight: formData.weight,
             image: formData.image,
-            thumbnail: formData.image,
             description: formData.description,
             inStock: formData.inStock,
             rating: 5.0,
             soldCount: 0
           };
-          const updated = [newProd, ...products];
-          saveProductList(updated);
+          saveProducts([newProd, ...products]);
         }
-
         setIsModalOpen(false);
       };
 
-      const filteredProducts = products.filter(p => {
-        const title = (p.name || p.title || '').toLowerCase();
-        return title.includes(searchQuery.toLowerCase());
-      });
+      const filteredProducts = products.filter(p =>
+        (p.name || p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
       return (
         <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
-          {/* SIDEBAR */}
-          <aside className="w-64 border-r border-slate-200 bg-white flex flex-col justify-between shrink-0">
-            <div>
-              <div className="p-6 flex items-center gap-3 border-b border-slate-100">
-                <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 font-bold text-lg">
+          {/* SIDEBAR SHADCN CUSTOMIZED */}
+          <aside className="w-64 border-r border-slate-200 bg-white flex flex-col justify-between shrink-0 shadow-sm z-20">
+            <div className="overflow-y-auto">
+              {/* Header Brand */}
+              <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                   🐾
                 </div>
                 <div>
-                  <h1 className="font-bold text-slate-800 text-lg leading-tight">Mèo Cưng</h1>
-                  <p className="text-xs text-orange-600 font-semibold tracking-wide uppercase">Admin Dashboard</p>
+                  <h1 className="font-bold text-slate-800 text-sm tracking-tight leading-tight">Mèo Cưng Admin</h1>
+                  <p className="text-[10px] text-orange-600 font-semibold tracking-wide uppercase">Medusa + PayloadCMS</p>
                 </div>
               </div>
 
-              <nav className="p-4 space-y-1.5">
-                <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  E-Commerce Catalog
+              {/* Navigation Menu */}
+              <nav className="p-3 space-y-4 text-xs font-medium">
+                <div>
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
+                      activeTab === 'overview'
+                        ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>📊</span>
+                    <span>Tổng Quan Dashboard</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => setActiveTab('products')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === 'products'
-                      ? 'bg-orange-50 text-orange-700 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <span className="text-base">📦</span>
-                  Quản Lý Sản Phẩm
-                  <span className="ml-auto text-xs bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
-                    {products.length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === 'dashboard'
-                      ? 'bg-orange-50 text-orange-700 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <span className="text-base">📊</span>
-                  Tổng Quan & Doanh Thu
-                </button>
 
-                <div className="pt-4 px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Content Management (CMS)
+                {/* Medusa Core Commerce */}
+                <div>
+                  <div className="px-3 pb-1.5 text-[10px] font-bold text-orange-700 uppercase tracking-wider flex items-center justify-between">
+                    <span>🛒 MEDUSA COMMERCE</span>
+                    <span className="text-[9px] bg-orange-100 px-1 py-0.2 rounded font-mono">CORE</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <button
+                      onClick={() => setActiveTab('products')}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'products'
+                          ? 'bg-orange-50 text-orange-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">📦 <span>Sản Phẩm & Kho Hàng</span></span>
+                      <span className="text-[10px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.2 rounded-full">
+                        {products.length}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'orders'
+                          ? 'bg-orange-50 text-orange-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">🛍️ <span>Đơn Hàng (Orders)</span></span>
+                      <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.2 rounded-full">
+                        4
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('vendors')}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'vendors'
+                          ? 'bg-orange-50 text-orange-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">🏪 <span>Marketplace Vendors</span></span>
+                      <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.2 rounded-full">
+                        4
+                      </span>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setActiveTab('payload')}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === 'payload'
-                      ? 'bg-orange-50 text-orange-700 font-semibold'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <span className="text-base">📝</span>
-                  PayloadCMS (iFrame)
-                  <span className="ml-auto text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">
-                    100 Bài
-                  </span>
-                </button>
+
+                {/* Payload CMS Headless Content Engine */}
+                <div>
+                  <div className="px-3 pb-1.5 text-[10px] font-bold text-indigo-700 uppercase tracking-wider flex items-center justify-between">
+                    <span>📝 PAYLOAD CMS 3.0</span>
+                    <span className="text-[9px] bg-indigo-100 px-1 py-0.2 rounded font-mono">CONTENT</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <button
+                      onClick={() => setActiveTab('cms_posts')}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'cms_posts'
+                          ? 'bg-indigo-50 text-indigo-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">📰 <span>Cẩm Nang Nuôi Mèo</span></span>
+                      <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.2 rounded-full">
+                        105+
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('cms_products')}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'cms_products'
+                          ? 'bg-indigo-50 text-indigo-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>✨</span>
+                      <span>Content Rich-Text (Sản Phẩm)</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('cms_banners')}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'cms_banners'
+                          ? 'bg-indigo-50 text-indigo-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>🖼️</span>
+                      <span>Banner Quảng Cáo & Slider</span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('cms_coupons')}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'cms_coupons'
+                          ? 'bg-indigo-50 text-indigo-700 font-bold'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>🏷️</span>
+                      <span>Mã Giảm Giá & Voucher</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Toàn bộ giao diện PayloadCMS */}
+                <div>
+                  <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    ⚙️ BẢNG ĐIỀU KHIỂN ĐỘC LẬP
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('payload_full')}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                      activeTab === 'payload_full'
+                        ? 'bg-slate-900 text-white font-bold'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">🚀 <span>Mở PayloadCMS Đầy Đủ</span></span>
+                    <span className="text-[9px] bg-slate-200 text-slate-700 font-bold px-1 rounded">iFrame</span>
+                  </button>
+                </div>
               </nav>
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-slate-500 font-medium">Trạng thái:</span>
-                <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  {sourceInfo}
-                </span>
-              </div>
+            {/* Footer action */}
+            <div className="p-3 border-t border-slate-100 bg-slate-50/50">
               <a
                 href={STOREFRONT_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-xs"
               >
-                <span>↗</span> Xem Storefront Mèo Cưng
+                🔗 Xem Storefront NextJS
               </a>
             </div>
           </aside>
 
-          {/* MAIN VIEW */}
+          {/* MAIN CONTENT WORKSPACE */}
           <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0">
+            {/* Top Bar */}
+            <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-xs">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-slate-800">
-                  {activeTab === 'products' && 'Quản Lý Danh Mục Sản Phẩm (Thêm - Xóa - Sửa)'}
-                  {activeTab === 'dashboard' && 'Tổng Quan Hệ Thống E-Commerce'}
-                  {activeTab === 'payload' && 'Quản Trị Nội Dung PayloadCMS 3.0'}
+                <h2 className="text-base font-bold text-slate-800">
+                  {activeTab === 'overview' && 'Tổng Quan Hệ Thống Hợp Nhất (Medusa + PayloadCMS)'}
+                  {activeTab === 'products' && 'Medusa Commerce: Quản Lý Sản Phẩm & Kho Hạt'}
+                  {activeTab === 'orders' && 'Medusa Commerce: Quản Lý Đơn Hàng'}
+                  {activeTab === 'vendors' && 'Medusa Commerce: Marketplace Vendors'}
+                  {activeTab === 'cms_posts' && 'PayloadCMS: Cẩm Nang Nuôi Mèo (100+ Bài Viết)'}
+                  {activeTab === 'cms_products' && 'PayloadCMS: Biên Tập Nội Dung Dinh Dưỡng Sản Phẩm'}
+                  {activeTab === 'cms_banners' && 'PayloadCMS: Banner & Slider Trang Chủ'}
+                  {activeTab === 'cms_coupons' && 'PayloadCMS: Mã Khuyến Mãi & Voucher'}
+                  {activeTab === 'payload_full' && 'Toàn Bộ Bảng Điều Khiển PayloadCMS 3.0'}
                 </h2>
+                <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> S3 / Cloudflare R2 Connected
+                </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {activeTab === 'products' && (
                   <button
                     onClick={handleOpenCreate}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-xs transition-colors"
                   >
-                    <span>➕</span> Thêm Sản Phẩm Mới
+                    ➕ Thêm Sản Phẩm Mới
                   </button>
                 )}
-                <button
-                  onClick={loadProducts}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 border border-slate-200 shadow-sm transition-colors"
+                <a
+                  href={PAYLOAD_ADMIN_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-lg shadow-xs"
                 >
-                  <span>🔄</span> {loading ? 'Đang tải...' : 'Đồng bộ'}
-                </button>
+                  🌐 Mở Tab Payload Mới
+                </a>
               </div>
             </header>
 
+            {/* Tab Views */}
             <div className="flex-1 overflow-auto bg-slate-50 p-6">
+              {/* TAB OVERVIEW */}
+              {activeTab === 'overview' && (
+                <div className="space-y-6 max-w-7xl mx-auto">
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Sản Phẩm Bán Lẻ</p>
+                        <h3 className="text-2xl font-black text-slate-800 mt-1">{products.length}</h3>
+                        <p className="text-[11px] text-orange-600 font-semibold mt-1">Medusa Core Engine</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-xl">
+                        📦
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bài Viết Cẩm Nang</p>
+                        <h3 className="text-2xl font-black text-slate-800 mt-1">105+</h3>
+                        <p className="text-[11px] text-indigo-600 font-semibold mt-1">PayloadCMS Headless</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xl">
+                        📰
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Đơn Hàng Gần Đây</p>
+                        <h3 className="text-2xl font-black text-slate-800 mt-1">4</h3>
+                        <p className="text-[11px] text-amber-600 font-semibold mt-1">Khách đặt realtime</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xl">
+                        🛍️
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Nhà Bán Hàng</p>
+                        <h3 className="text-2xl font-black text-slate-800 mt-1">4</h3>
+                        <p className="text-[11px] text-purple-600 font-semibold mt-1">Marketplace Active</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xl">
+                        🏪
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Banner Hợp nhất */}
+                  <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-indigo-600 p-6 rounded-2xl text-white shadow-sm">
+                    <span className="text-[10px] font-extrabold bg-white/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      Mô Hình Chuẩn Headless E-Commerce
+                    </span>
+                    <h3 className="text-xl font-bold mt-2">Medusa Core Commerce + Payload CMS Content Engine</h3>
+                    <p className="text-xs text-orange-100 max-w-2xl mt-1 leading-relaxed">
+                      Dashboard hợp nhất mang trải nghiệm quản trị tất cả trong một (All-in-One Admin): Vừa quản lý tồn kho, giá bán và đơn hàng qua Medusa, vừa biên tập nội dung cẩm nang, rich-text và banner qua PayloadCMS, dùng chung bộ lưu trữ hình ảnh Cloudflare R2 S3.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB PRODUCTS */}
               {activeTab === 'products' && (
                 <div className="space-y-4 max-w-7xl mx-auto">
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md">
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="🔍 Tìm kiếm sản phẩm hạt, pate, cát..."
-                        className="w-full px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                      />
-                    </div>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Tìm kiếm sản phẩm hạt, pate, cát..."
+                      className="w-80 px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
                     <div className="text-xs text-slate-500 font-medium">
-                      Hiển thị <strong>{filteredProducts.length}</strong> / <strong>{products.length}</strong> sản phẩm
+                      Tổng số: <strong>{filteredProducts.length}</strong> sản phẩm
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th className="py-3.5 px-6">Ảnh & Tên Sản Phẩm</th>
-                            <th className="py-3.5 px-6">Danh Mục</th>
-                            <th className="py-3.5 px-6">Giá Bán</th>
-                            <th className="py-3.5 px-6">Trọng Lượng</th>
-                            <th className="py-3.5 px-6">Trạng Thái</th>
-                            <th className="py-3.5 px-6 text-right">Thao Tác</th>
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          <th className="py-3 px-6">Ảnh & Tên Sản Phẩm</th>
+                          <th className="py-3 px-6">Nhà Cung Cấp</th>
+                          <th className="py-3 px-6">Danh Mục</th>
+                          <th className="py-3 px-6">Giá Bán</th>
+                          <th className="py-3 px-6">Trạng Thái</th>
+                          <th className="py-3 px-6 text-right">Thao Tác</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {filteredProducts.map((p) => (
+                          <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3.5 px-6 flex items-center gap-3">
+                              <img src={p.image || p.thumbnail} alt={p.name} className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0" />
+                              <div>
+                                <div className="font-bold text-slate-800 line-clamp-1">{p.name || p.title}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">ID: {p.id}</div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
+                                🏪 {p.vendorName || 'Mèo Cưng Mall'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">
+                                {p.categoryName || p.categorySlug || 'Thức ăn hạt'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-6 font-bold text-orange-600">
+                              {Number(p.price).toLocaleString('vi-VN')} ₫
+                            </td>
+                            <td className="py-3.5 px-6">
+                              <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                Còn hàng
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-6 text-right space-x-1.5">
+                              <button
+                                onClick={() => handleOpenEdit(p)}
+                                className="px-2.5 py-1 font-bold text-blue-600 hover:text-blue-800 bg-blue-50 rounded"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => handleDelete(p.id)}
+                                className="px-2.5 py-1 font-bold text-rose-600 hover:text-rose-800 bg-rose-50 rounded"
+                              >
+                                Xóa
+                              </button>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm">
-                          {filteredProducts.map((p) => {
-                            const name = p.name || p.title || 'Sản phẩm không tên';
-                            const image = p.image || p.thumbnail || 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800';
-                            const price = Number(p.price) || 0;
-                            const cat = p.categoryName || p.categorySlug || p.category || 'Thức ăn mèo';
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
-                            return (
-                              <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                                <td className="py-4 px-6 flex items-center gap-3.5">
-                                  <div className="w-12 h-12 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center overflow-hidden shrink-0">
-                                    <img src={image} alt={name} className="w-full h-full object-cover" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="font-semibold text-slate-800 line-clamp-1">{name}</div>
-                                    <div className="text-xs text-slate-400 font-mono">ID: {p.id}</div>
-                                  </div>
-                                </td>
-                                <td className="py-4 px-6">
-                                  <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-medium">
-                                    {cat}
-                                  </span>
-                                </td>
-                                <td className="py-4 px-6">
-                                  <span className="font-bold text-orange-600">
-                                    {price.toLocaleString('vi-VN')} ₫
-                                  </span>
-                                  {p.originalPrice && (
-                                    <div className="text-xs text-slate-400 line-through">
-                                      {Number(p.originalPrice).toLocaleString('vi-VN')} ₫
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="py-4 px-6 text-slate-600">
-                                  {p.weight || '1kg'}
-                                </td>
-                                <td className="py-4 px-6">
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Còn hàng
-                                  </span>
-                                </td>
-                                <td className="py-4 px-6 text-right space-x-2">
-                                  <button
-                                    onClick={() => handleOpenEdit(p)}
-                                    className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                                  >
-                                    ✏️ Sửa
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(p.id)}
-                                    className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
-                                  >
-                                    🗑️ Xóa
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+              {/* TAB ORDERS */}
+              {activeTab === 'orders' && (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 max-w-7xl mx-auto">
+                  <h3 className="font-bold text-slate-800 text-base mb-4">Danh Sách Đơn Hàng Mới Nhất</h3>
+                  <div className="divide-y divide-slate-100 text-xs">
+                    <div className="py-3 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-slate-800">Nguyễn Văn An (0912 345 678)</p>
+                        <p className="text-slate-400">Đơn hàng: Hạt Royal Canin Fit 32 (2kg) - Mã: ORD-9821</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-orange-600">185.000 ₫</p>
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold">Đã hoàn thành</span>
+                      </div>
+                    </div>
+                    <div className="py-3 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-slate-800">Trần Thị Mai (0988 776 554)</p>
+                        <p className="text-slate-400">Đơn hàng: Pate Ciao Churu Gói 4 thanh - Mã: ORD-9822</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-orange-600">90.000 ₫</p>
+                        <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold">Đang vận chuyển</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {activeTab === 'dashboard' && (
-                <div className="space-y-6 max-w-7xl mx-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-                        Sản Phẩm Trong Kho
-                        <span className="text-base">📦</span>
-                      </div>
-                      <div className="text-2xl font-bold text-slate-800 mt-2">{products.length}</div>
-                      <p className="text-xs text-emerald-600 mt-1">Đầy đủ hạt, pate, cát, đồ chơi</p>
+              {/* TAB VENDORS */}
+              {activeTab === 'vendors' && (
+                <div className="max-w-7xl mx-auto space-y-4">
+                  <h3 className="font-bold text-slate-800 text-base">Hệ Thống Nhà Bán Hàng (Marketplace Multi-Vendor)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="text-2xl mb-2">🏪</div>
+                      <h4 className="font-bold text-slate-800 text-sm">Mèo Cưng Official</h4>
+                      <p className="text-xs text-slate-400">TP. Hồ Chí Minh</p>
+                      <p className="text-xs text-purple-700 font-bold mt-2">5 sản phẩm ký gửi</p>
                     </div>
-
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-                        Bài Cẩm Nang Nuôi Mèo
-                        <span className="text-base">📝</span>
-                      </div>
-                      <div className="text-2xl font-bold text-slate-800 mt-2">100+</div>
-                      <p className="text-xs text-blue-600 mt-1">Quản lý trên PayloadCMS</p>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="text-2xl mb-2">🏪</div>
+                      <h4 className="font-bold text-slate-800 text-sm">Royal Canin Việt Nam</h4>
+                      <p className="text-xs text-slate-400">Hà Nội</p>
+                      <p className="text-xs text-purple-700 font-bold mt-2">2 sản phẩm ký gửi</p>
                     </div>
-
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-                        Liên Kết Realtime
-                        <span className="text-base">🔗</span>
-                      </div>
-                      <div className="text-2xl font-bold text-emerald-600 mt-2">Đồng bộ</div>
-                      <p className="text-xs text-slate-400 mt-1">Admin ➔ Storefront 100%</p>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="text-2xl mb-2">🏪</div>
+                      <h4 className="font-bold text-slate-800 text-sm">Ciao Churu Pet Mall</h4>
+                      <p className="text-xs text-slate-400">TP. Hồ Chí Minh</p>
+                      <p className="text-xs text-purple-700 font-bold mt-2">1 sản phẩm ký gửi</p>
                     </div>
-
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between text-slate-500 text-xs font-medium uppercase tracking-wider">
-                        Database Neon
-                        <span className="text-base">🐘</span>
-                      </div>
-                      <div className="text-2xl font-bold text-slate-800 mt-2">PostgreSQL</div>
-                      <p className="text-xs text-purple-600 mt-1">Serverless Cloud Pooler</p>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="text-2xl mb-2">🏪</div>
+                      <h4 className="font-bold text-slate-800 text-sm">Phụ Kiện Thú Cưng</h4>
+                      <p className="text-xs text-slate-400">Đà Nẵng</p>
+                      <p className="text-xs text-purple-700 font-bold mt-2">1 sản phẩm ký gửi</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {activeTab === 'payload' && (
-                <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                  <div className="p-3 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-xs px-4">
-                    <div className="flex items-center gap-2 text-slate-600 font-medium">
-                      <span>📝</span>
-                      Giao diện <strong>PayloadCMS 3.0</strong> (Quản lý 100 bài viết cẩm nang & Banners)
-                    </div>
-                    <a
-                      href={PAYLOAD_ADMIN_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-orange-600 hover:text-orange-700 font-semibold"
-                    >
-                      Mở trang quản trị gốc ↗
-                    </a>
-                  </div>
-                  <iframe
-                    src={PAYLOAD_ADMIN_URL}
-                    className="w-full flex-1 border-0"
-                    title="PayloadCMS Admin"
-                  />
+              {/* TÍCH HỢP PAYLOAD CMS IFRAME EMBEDDED */}
+              {activeTab === 'cms_posts' && (
+                <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                  <iframe src={`${PAYLOAD_ADMIN_URL}/collections/posts`} className="w-full h-full border-0" title="Payload Posts" />
+                </div>
+              )}
+
+              {activeTab === 'cms_products' && (
+                <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                  <iframe src={`${PAYLOAD_ADMIN_URL}/collections/products`} className="w-full h-full border-0" title="Payload Products" />
+                </div>
+              )}
+
+              {activeTab === 'cms_banners' && (
+                <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                  <iframe src={`${PAYLOAD_ADMIN_URL}/collections/banners`} className="w-full h-full border-0" title="Payload Banners" />
+                </div>
+              )}
+
+              {activeTab === 'cms_coupons' && (
+                <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                  <iframe src={`${PAYLOAD_ADMIN_URL}/collections/coupons`} className="w-full h-full border-0" title="Payload Coupons" />
+                </div>
+              )}
+
+              {activeTab === 'payload_full' && (
+                <div className="w-full h-[calc(100vh-120px)] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+                  <iframe src={PAYLOAD_ADMIN_URL} className="w-full h-full border-0" title="Payload Full" />
                 </div>
               )}
             </div>
           </main>
 
-          {/* MODAL */}
+          {/* MODAL THÊM / SỬA */}
           {isModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-bold text-lg text-slate-800">
-                    {editingProduct ? '✏️ Chỉnh Sửa Sản Phẩm' : '➕ Thêm Sản Phẩm Mới'}
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+              <div className="bg-white rounded-xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-slate-800">
+                    {editingProduct ? 'Chỉnh Sửa Sản Phẩm (Medusa)' : 'Thêm Sản Phẩm Mới (Medusa)'}
                   </h3>
-                  <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold">
-                    ✕
-                  </button>
+                  <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
                 </div>
 
-                <form onSubmit={handleSaveSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <form onSubmit={handleSaveSubmit} className="p-4 space-y-3 text-xs">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Tên sản phẩm *</label>
+                    <label className="block font-bold text-slate-600 uppercase mb-1">Tên sản phẩm *</label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="VD: Hạt Royal Canin Indoor 2kg"
-                      className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg outline-none focus:border-orange-500"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Danh mục</label>
-                      <select
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white"
-                      >
-                        <option value="thuc-an-hat">Thức ăn hạt</option>
-                        <option value="pate-cho-meo">Pate cho mèo</option>
-                        <option value="cat-ve-sinh">Cát vệ sinh</option>
-                        <option value="phu-kien">Phụ kiện & Đồ chơi</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Trọng lượng</label>
-                      <input
-                        type="text"
-                        value={formData.weight}
-                        onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                        placeholder="VD: 2kg, 85g, 6L"
-                        className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Giá bán (VNĐ) *</label>
-                      <input
-                        type="number"
-                        required
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none font-semibold text-orange-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Giá gốc</label>
-                      <input
-                        type="number"
-                        value={formData.originalPrice}
-                        onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                        className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
-                      />
-                    </div>
+                  <div>
+                    <label className="block font-bold text-slate-600 uppercase mb-1">Giá bán (VNĐ) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg outline-none focus:border-orange-500 font-bold text-orange-600"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Đường dẫn ảnh sản phẩm (URL)</label>
+                    <label className="block font-bold text-slate-600 uppercase mb-1">URL Ảnh sản phẩm</label>
                     <input
                       type="url"
                       value={formData.image}
                       onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg outline-none focus:border-orange-500"
                     />
                   </div>
 
-                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                  <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                      className="px-3 py-1.5 font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
                     >
-                      Hủy bỏ
+                      Hủy
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm"
+                      className="px-4 py-1.5 font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg"
                     >
-                      Lưu Sản Phẩm
+                      Lưu Lại
                     </button>
                   </div>
                 </form>
@@ -733,7 +868,7 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ReactDOM.createRoot(document.getElementById('root')).render(<UnifiedAdminApp />);
   </script>
 </body>
 </html>
