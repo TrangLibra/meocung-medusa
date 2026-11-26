@@ -550,12 +550,19 @@
           setIsProductModalOpen(true);
         };
 
-        const handleDeleteProduct = (id) => {
+        const handleDeleteProduct = async (id) => {
           if (!confirm('Xác nhận xóa sản phẩm khỏi kho hàng?')) return;
+          try {
+            await fetch(`https://meocung-ecommerce-seven.vercel.app/api/medusa/products?id=${id}`, {
+              method: 'DELETE'
+            });
+          } catch (e) {
+            console.error('Error deleting product from DB:', e);
+          }
           setProducts(products.filter(p => p.id !== id));
         };
 
-        const handleSaveProduct = (e) => {
+        const handleSaveProduct = async (e) => {
           e.preventDefault();
           if (!productForm.name.trim()) return alert('Vui lòng nhập tên sản phẩm!');
 
@@ -566,18 +573,34 @@
             'phu-kien': 'Phụ kiện & Đồ chơi'
           };
 
-          if (editingProduct) {
-            setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
-          } else {
-            const newP = {
-              id: `prod_${Date.now()}`,
-              ...productForm,
-              categoryName: catNames[productForm.category],
-              status: 'published'
-            };
-            setProducts([newP, ...products]);
+          try {
+            if (editingProduct) {
+              await fetch('https://meocung-ecommerce-seven.vercel.app/api/medusa/products', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: editingProduct.id, ...productForm })
+              });
+              setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
+            } else {
+              const newId = `prod_${Date.now()}`;
+              const payload = {
+                id: newId,
+                ...productForm,
+                categoryName: catNames[productForm.category],
+                status: 'published'
+              };
+              await fetch('https://meocung-ecommerce-seven.vercel.app/api/medusa/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              setProducts([payload, ...products]);
+            }
+          } catch (err) {
+            console.error('Error saving product to DB:', err);
           }
           setIsProductModalOpen(false);
+          alert('Đã lưu sản phẩm thành công vào cơ sở dữ liệu!');
         };
 
         // Xử lý tạo / sửa bài viết cẩm nang PayloadCMS
