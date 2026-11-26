@@ -28,7 +28,7 @@
 
     <script type="text/babel">
       const { useState, useEffect } = React;
-      const PAYLOAD_API_URL = "https://meocung-payload.vercel.app/api";
+      const PAYLOAD_API_URL = "https://meocung-ecommerce-seven.vercel.app/api/admin";
       const STOREFRONT_URL = "https://meocung-ecommerce-seven.vercel.app";
 
       // Dữ liệu sản phẩm Medusa Commerce
@@ -172,8 +172,27 @@
 
       function SingleUnifiedDashboard() {
         const [activeTab, setActiveTab] = useState('products');
-        const [products, setProducts] = useState(INITIAL_PRODUCTS);
+        
+        // Khởi tạo sản phẩm từ localStorage để đồng bộ thời gian thực với Storefront và các tab
+        const [products, setProducts] = useState(() => {
+          try {
+            const saved = localStorage.getItem('meocung_custom_products');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+          } catch (e) {}
+          return INITIAL_PRODUCTS;
+        });
         const [searchQuery, setSearchQuery] = useState('');
+
+        // Tự động lưu và phát broadcast event khi có thay đổi sản phẩm
+        useEffect(() => {
+          try {
+            localStorage.setItem('meocung_custom_products', JSON.stringify(products));
+            window.dispatchEvent(new Event('products_updated'));
+          } catch (e) {}
+        }, [products]);
 
         // Dữ liệu PayloadCMS nạp trực tiếp qua Native REST API (Hoàn toàn không dùng iFrame, KHÔNG CẦN LOGIN)
         const [posts, setPosts] = useState([]);
@@ -209,7 +228,27 @@
         const fetchPayloadPosts = async () => {
           setPostsLoading(true);
           try {
-            const res = await fetch(`${PAYLOAD_API_URL}/posts?limit=100`);
+            // Thử nạp qua API admin của storefront trước (có sẵn 100 bài từ DB)
+            let res = await fetch(`https://meocung-ecommerce-seven.vercel.app/api/admin/posts`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.docs && data.docs.length > 0) {
+                const formatted = data.docs.map(item => ({
+                  id: item.id,
+                  title: item.title,
+                  category: item.category || 'kinh-nghiem',
+                  summary: item.summary || (item.content ? item.content.replace(/<[^>]*>?/gm, '').slice(0, 120) + '...' : ''),
+                  coverImage: item.image || item.coverImage || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
+                  status: item.status || 'published'
+                }));
+                setPosts(formatted);
+                setPostsLoading(false);
+                return;
+              }
+            }
+            
+            // Fallback sang Payload backend direct API
+            res = await fetch(`https://meocung-payload.vercel.app/api/posts?limit=100`);
             if (res.ok) {
               const data = await res.json();
               if (data && data.docs) {
