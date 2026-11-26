@@ -5,18 +5,45 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <title>Medusa Admin - Mèo Cưng</title>
         <link rel="icon" href="data:," data-placeholder-favicon />
-        <!-- Rewrite fetch to proxy /admin and /auth requests to Medusa Backend -->
         <script>
           const MEDUSA_BACKEND = "https://meocung-medusa.onrender.com";
           const originalFetch = window.fetch;
-          window.fetch = function(url, options = {}) {
-            if (typeof url === 'string') {
-              if (url.startsWith('/admin') || url.startsWith('/auth') || url.startsWith('/store')) {
-                url = MEDUSA_BACKEND + url;
+          window.fetch = async function(url, options = {}) {
+            let reqUrl = url;
+            options.headers = options.headers || {};
+            
+            // Lấy token đã lưu nếu có
+            const token = localStorage.getItem('medusa_auth_token');
+            if (token) {
+              if (options.headers instanceof Headers) {
+                options.headers.set('Authorization', 'Bearer ' + token);
+              } else {
+                options.headers['Authorization'] = 'Bearer ' + token;
+              }
+            }
+
+            if (typeof reqUrl === 'string') {
+              if (reqUrl.startsWith('/admin') || reqUrl.startsWith('/auth') || reqUrl.startsWith('/store')) {
+                reqUrl = MEDUSA_BACKEND + reqUrl;
                 options.credentials = options.credentials || 'include';
               }
             }
-            return originalFetch(url, options);
+
+            const response = await originalFetch(reqUrl, options);
+
+            // Bắt token khi đăng nhập thành công
+            if (typeof reqUrl === 'string' && reqUrl.includes('/auth/user/emailpass')) {
+              try {
+                const clone = response.clone();
+                const data = await clone.json();
+                if (data && data.token) {
+                  localStorage.setItem('medusa_auth_token', data.token);
+                  document.cookie = `_medusa_jwt=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+                }
+              } catch (_) {}
+            }
+
+            return response;
           };
         </script>
         <script type="module" crossorigin src="/assets/index-DfD3voTe.js"></script>
