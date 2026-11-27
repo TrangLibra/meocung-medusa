@@ -459,11 +459,82 @@
         );
 
         const ORDER_STATUS_LABELS = {
+          draft: { label: '📝 Đơn nháp', cls: 'bg-slate-800 text-slate-300 border-slate-600/60' },
           pending: { label: 'Chờ xác nhận', cls: 'bg-amber-950 text-amber-400 border-amber-800/50' },
           confirmed: { label: 'Đã xác nhận', cls: 'bg-indigo-950 text-indigo-400 border-indigo-800/50' },
           shipping: { label: 'Đang vận chuyển', cls: 'bg-blue-950 text-blue-400 border-blue-800/50' },
           delivered: { label: 'Đã giao hàng', cls: 'bg-emerald-950 text-emerald-400 border-emerald-800/50' },
           cancelled: { label: 'Đã hủy', cls: 'bg-rose-950 text-rose-400 border-rose-800/50' },
+        };
+
+        // NHÓM 2 (SALEOR ORDERS): Draft Orders & Order Timeline
+        const [isDraftOrderOpen, setIsDraftOrderOpen] = useState(false);
+        const [draftOrderForm, setDraftOrderForm] = useState({
+          customer_name: '',
+          customer_phone: '',
+          customer_email: '',
+          shipping_address: 'Nhận tại cửa hàng Mèo Cưng',
+          shipping_fee: 0,
+          discount_amount: 0,
+          note: '',
+          internal_note: '',
+          status: 'draft',
+          items: [],
+        });
+        const [activeOrderDetail, setActiveOrderDetail] = useState(null);
+        const [detailTrackingInput, setDetailTrackingInput] = useState('');
+        const [detailInternalNote, setDetailInternalNote] = useState('');
+        const [detailTimelineNote, setDetailTimelineNote] = useState('');
+
+        const handleCreateDraftOrder = async (e) => {
+          e.preventDefault();
+          if (!draftOrderForm.items.length) {
+            alert('Vui lòng chọn ít nhất 1 sản phẩm cho đơn hàng!');
+            return;
+          }
+          try {
+            const res = await fetch(orderApiBase, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(draftOrderForm),
+            });
+            if (res.ok) {
+              setIsDraftOrderOpen(false);
+              setDraftOrderForm({
+                customer_name: '', customer_phone: '', customer_email: '',
+                shipping_address: 'Nhận tại cửa hàng Mèo Cưng', shipping_fee: 0,
+                discount_amount: 0, note: '', internal_note: '', status: 'draft', items: [],
+              });
+              fetchOrders();
+            } else {
+              const err = await res.json().catch(() => ({}));
+              alert(err.error || 'Không thể tạo đơn nháp');
+            }
+          } catch (_e) {
+            alert('Lỗi kết nối API tạo đơn nháp');
+          }
+        };
+
+        const handleSaveOrderDetail = async (e) => {
+          e.preventDefault();
+          if (!activeOrderDetail) return;
+          try {
+            const res = await fetch(`${orderApiBase}/${activeOrderDetail.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tracking_code: detailTrackingInput,
+                internal_note: detailInternalNote,
+                timeline_message: detailTimelineNote.trim() || undefined,
+              }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.order) setActiveOrderDetail(data.order);
+              setDetailTimelineNote('');
+              fetchOrders();
+            }
+          } catch (_e) {}
         };
 
         const fetchOrders = async (overrideSearch, overrideStatus) => {
@@ -2656,6 +2727,7 @@
                           className="px-3 py-1.5 text-xs rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-200"
                         >
                           <option value="all">Tất cả trạng thái</option>
+                          <option value="draft">📝 Đơn nháp (Draft)</option>
                           <option value="pending">Chờ xác nhận</option>
                           <option value="confirmed">Đã xác nhận</option>
                           <option value="shipping">Đang vận chuyển</option>
@@ -2669,9 +2741,17 @@
                           🔍 Tìm
                         </button>
                       </div>
-                      <span className="text-[11px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2.5 py-1 rounded-full">
-                        🐘 Neon PostgreSQL • {orders.length} đơn hàng
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setIsDraftOrderOpen(true)}
+                          className="px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm"
+                        >
+                          ➕ Tạo Đơn Nháp (POS)
+                        </button>
+                        <span className="text-[11px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2.5 py-1 rounded-full">
+                          🐘 Neon PostgreSQL • {orders.length} đơn hàng
+                        </span>
+                      </div>
                     </div>
 
                     {orderError && (
@@ -2786,12 +2866,24 @@
                                     onChange={(e) => handleUpdateOrderStatus(ord, e.target.value)}
                                     className="px-2 py-1 text-[11px] rounded-md bg-[#121214] border border-[#3f3f46] text-slate-200 font-semibold"
                                   >
+                                    <option value="draft">Đơn nháp</option>
                                     <option value="pending">Chờ xác nhận</option>
                                     <option value="confirmed">Đã xác nhận</option>
                                     <option value="shipping">Đang vận chuyển</option>
                                     <option value="delivered">Đã giao hàng</option>
                                     <option value="cancelled">Đã hủy</option>
                                   </select>
+                                  <button
+                                    onClick={() => {
+                                      setActiveOrderDetail(ord);
+                                      setDetailTrackingInput(ord.tracking_code || '');
+                                      setDetailInternalNote(ord.internal_note || '');
+                                      setDetailTimelineNote('');
+                                    }}
+                                    className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-950/60 text-indigo-300 border border-indigo-800/50 hover:opacity-80"
+                                  >
+                                    📋 Timeline
+                                  </button>
                                   <button
                                     onClick={() => handleUpdateTracking(ord)}
                                     className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-950/60 text-blue-400 border border-blue-800/50 hover:opacity-80"
@@ -4399,6 +4491,169 @@
                       <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Lưu Bộ Sưu Tập</button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL TẠO ĐƠN NHÁP (DRAFT ORDER / POS) */}
+            {isDraftOrderOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-2xl w-full shadow-2xl border border-[#27272a] overflow-hidden max-h-[90vh] flex flex-col">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">📝 Tạo Đơn Hàng Nháp / Đặt Hộ (Saleor Draft Order)</h3>
+                    <button onClick={() => setIsDraftOrderOpen(false)} className="text-slate-400 hover:text-white font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleCreateDraftOrder} className="p-5 space-y-4 text-xs overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Tên khách hàng *</label>
+                        <input type="text" required value={draftOrderForm.customer_name} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, customer_name: e.target.value })} placeholder="VD: Chị Lan (Zalo)" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Số điện thoại *</label>
+                        <input type="text" required value={draftOrderForm.customer_phone} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, customer_phone: e.target.value })} placeholder="0901234567" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Email (nếu có)</label>
+                        <input type="email" value={draftOrderForm.customer_email} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, customer_email: e.target.value })} placeholder="khach@gmail.com" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Trạng thái khởi tạo</label>
+                        <select value={draftOrderForm.status} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, status: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                          <option value="draft">📝 Đơn nháp (Chưa chốt)</option>
+                          <option value="pending">Chờ xác nhận</option>
+                          <option value="confirmed">Đã xác nhận (Chốt ngay)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Địa chỉ giao hàng</label>
+                      <input type="text" value={draftOrderForm.shipping_address} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, shipping_address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Chọn sản phẩm thêm vào đơn</label>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const prod = products.find((p) => p.id === e.target.value);
+                          if (!prod) return;
+                          setDraftOrderForm((prev) => {
+                            const existing = prev.items.find((i) => i.name === prod.name);
+                            if (existing) {
+                              return { ...prev, items: prev.items.map((i) => i.name === prod.name ? { ...i, quantity: i.quantity + 1 } : i) };
+                            }
+                            return { ...prev, items: [...prev.items, { name: prod.name, price: Number(prod.price || 0), quantity: 1 }] };
+                          });
+                        }}
+                        className="w-full bg-[#121214] border border-[#3f3f46] px-3 py-2 rounded-lg text-slate-100"
+                      >
+                        <option value="">-- Chọn sản phẩm từ kho --</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name} — {Number(p.price || 0).toLocaleString('vi-VN')} ₫</option>
+                        ))}
+                      </select>
+                      {draftOrderForm.items.length > 0 && (
+                        <div className="mt-2 space-y-1.5 bg-[#121214] p-2.5 rounded-lg border border-[#27272a]">
+                          {draftOrderForm.items.map((it, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-2">
+                              <span className="text-slate-200 flex-1 truncate">{it.name}</span>
+                              <input
+                                type="number"
+                                min="1"
+                                value={it.quantity}
+                                onChange={(e) => {
+                                  const q = Math.max(1, Number(e.target.value || 1));
+                                  setDraftOrderForm((prev) => ({ ...prev, items: prev.items.map((x, i) => i === idx ? { ...x, quantity: q } : x) }));
+                                }}
+                                className="w-16 bg-[#18181b] border border-[#3f3f46] px-2 py-1 rounded text-center text-slate-100"
+                              />
+                              <span className="text-orange-400 font-bold w-24 text-right">{(it.price * it.quantity).toLocaleString('vi-VN')} ₫</span>
+                              <button type="button" onClick={() => setDraftOrderForm((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))} className="text-rose-400 font-bold px-1.5">✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Phí vận chuyển (₫)</label>
+                        <input type="number" min="0" value={draftOrderForm.shipping_fee} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, shipping_fee: Number(e.target.value || 0) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Giảm giá thêm (₫)</label>
+                        <input type="number" min="0" value={draftOrderForm.discount_amount} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, discount_amount: Number(e.target.value || 0) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Ghi chú khách hàng</label>
+                        <input type="text" value={draftOrderForm.note} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, note: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Ghi chú nội bộ (chỉ Admin xem)</label>
+                        <input type="text" value={draftOrderForm.internal_note} onChange={(e) => setDraftOrderForm({ ...draftOrderForm, internal_note: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </div>
+                    <div className="pt-3 flex items-center justify-between border-t border-[#27272a]">
+                      <div className="text-sm font-extrabold text-orange-400">
+                        Tổng thanh toán: {Math.max(0, draftOrderForm.items.reduce((s, i) => s + i.price * i.quantity, 0) + Number(draftOrderForm.shipping_fee || 0) - Number(draftOrderForm.discount_amount || 0)).toLocaleString('vi-VN')} ₫
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setIsDraftOrderOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                        <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">💾 Lưu Đơn Nháp</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL CHI TIẾT & ORDER TIMELINE */}
+            {activeOrderDetail && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-2xl w-full shadow-2xl border border-[#27272a] overflow-hidden max-h-[90vh] flex flex-col">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">📋 Chi Tiết & Timeline Đơn <span className="text-orange-400 font-mono">#{activeOrderDetail.order_code}</span></h3>
+                    <button onClick={() => setActiveOrderDetail(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+                  </div>
+                  <div className="p-5 space-y-4 text-xs overflow-y-auto">
+                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-1">
+                      <div className="font-bold text-slate-100">{activeOrderDetail.customer_name} • {activeOrderDetail.customer_phone}</div>
+                      <div className="text-slate-400">📍 {activeOrderDetail.shipping_address}</div>
+                      <div className="text-orange-400 font-extrabold pt-1">Tổng đơn: {Number(activeOrderDetail.grand_total || 0).toLocaleString('vi-VN')} ₫ (Ship: {Number(activeOrderDetail.shipping_fee || 0).toLocaleString('vi-VN')} ₫)</div>
+                    </div>
+                    <form onSubmit={handleSaveOrderDetail} className="space-y-3 bg-[#121214] p-3.5 rounded-xl border border-[#27272a]">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">🚚 Mã vận đơn (GHTK / GHN / VTP)</label>
+                          <input type="text" value={detailTrackingInput} onChange={(e) => setDetailTrackingInput(e.target.value)} placeholder="VD: GHN-998877" className="w-full bg-[#18181b] border border-[#3f3f46] px-3 py-1.5 rounded-lg text-slate-100 font-mono" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">🔒 Ghi chú nội bộ</label>
+                          <input type="text" value={detailInternalNote} onChange={(e) => setDetailInternalNote(e.target.value)} placeholder="VD: Khách hẹn giao sau 17h" className="w-full bg-[#18181b] border border-[#3f3f46] px-3 py-1.5 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="text" value={detailTimelineNote} onChange={(e) => setDetailTimelineNote(e.target.value)} placeholder="Thêm sự kiện/ghi chú mới vào Timeline..." className="flex-1 bg-[#18181b] border border-[#3f3f46] px-3 py-1.5 rounded-lg text-slate-100" />
+                        <button type="submit" className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shrink-0">💾 Cập nhật</button>
+                      </div>
+                    </form>
+                    <div>
+                      <div className="font-bold text-slate-300 uppercase text-[11px] mb-2">🕒 Nhật ký xử lý đơn hàng (Order Timeline)</div>
+                      <div className="space-y-2 border-l-2 border-orange-500/40 pl-3 ml-1">
+                        {(!activeOrderDetail.timeline || activeOrderDetail.timeline.length === 0) ? (
+                          <div className="text-slate-500">
+                            • {activeOrderDetail.created_at ? new Date(activeOrderDetail.created_at).toLocaleString('vi-VN') : '—'} — Khởi tạo đơn hàng
+                          </div>
+                        ) : [...activeOrderDetail.timeline].reverse().map((ev, i) => (
+                          <div key={i} className="bg-[#121214] p-2.5 rounded-lg border border-[#27272a]">
+                            <div className="text-[10px] text-slate-500 font-mono">{ev.time ? new Date(ev.time).toLocaleString('vi-VN') : ''}</div>
+                            <div className="text-slate-200 font-medium mt-0.5">{ev.message}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
