@@ -537,6 +537,113 @@
           } catch (_e) {}
         };
 
+        // NHÓM 4 (SALEOR SHIPPING & AUTOMATIC SALES): Shipping Zones & Flash Sales
+        const [commerceRules, setCommerceRules] = useState([]);
+        const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+        const [editingRule, setEditingRule] = useState(null);
+        const [ruleForm, setRuleForm] = useState({
+          rule_type: 'shipping_zone',
+          name: '',
+          is_active: true,
+          provinces: '',
+          base_fee: 25000,
+          free_shipping_threshold: 300000,
+          estimated_days: '1 - 3 ngày',
+          discount_percent: 15,
+          target_category: 'all',
+          start_at: '',
+          end_at: '',
+        });
+
+        const fetchCommerceRules = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/commerce-rules')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.rules)) { setCommerceRules(data.rules); return; }
+              }
+            } catch (_) {}
+          }
+        };
+
+        useEffect(() => {
+          if (activeTab === 'shipping_zones' || activeTab === 'flash_sales') {
+            fetchCommerceRules();
+          }
+        }, [activeTab]);
+
+        const handleSaveCommerceRule = async (e) => {
+          e.preventDefault();
+          const config = ruleForm.rule_type === 'shipping_zone'
+            ? {
+                provinces: ruleForm.provinces,
+                base_fee: Number(ruleForm.base_fee || 0),
+                free_shipping_threshold: Number(ruleForm.free_shipping_threshold || 0),
+                estimated_days: ruleForm.estimated_days,
+              }
+            : {
+                discount_percent: Number(ruleForm.discount_percent || 0),
+                target_category: ruleForm.target_category,
+                start_at: ruleForm.start_at,
+                end_at: ruleForm.end_at,
+              };
+          const payload = editingRule
+            ? { id: editingRule.id, name: ruleForm.name, is_active: ruleForm.is_active, config }
+            : { rule_type: ruleForm.rule_type, name: ruleForm.name, is_active: ruleForm.is_active, config };
+          for (const url of getCmsApiCandidates('/api/admin/commerce-rules')) {
+            try {
+              const res = await fetch(url, {
+                method: editingRule ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (res.ok) {
+                setIsRuleModalOpen(false);
+                fetchCommerceRules();
+                return;
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleToggleCommerceRule = async (rule) => {
+          for (const url of getCmsApiCandidates('/api/admin/commerce-rules')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: rule.id, is_active: !rule.is_active }),
+              });
+              if (res.ok) { fetchCommerceRules(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const handleDeleteCommerceRule = async (id) => {
+          if (!confirm('Xóa quy tắc này khỏi Neon DB?')) return;
+          for (const url of getCmsApiCandidates(`/api/admin/commerce-rules?id=${id}`)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) { fetchCommerceRules(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const handleApplyFlashSaleToProducts = async (sale) => {
+          const pct = Number(sale.config?.discount_percent || 0);
+          const cat = sale.config?.target_category || 'all';
+          const targets = products.filter((p) => cat === 'all' || p.category === cat);
+          if (!targets.length) return alert('Không có sản phẩm nào thuộc danh mục này.');
+          if (!confirm(`Áp dụng giảm ${pct}% lên ${targets.length} sản phẩm trong danh mục "${cat}" và lưu vào Neon DB?`)) return;
+          await Promise.all(targets.map((p) => {
+            const orig = Number(p.originalPrice || p.price || 150000);
+            const nextPrice = Math.max(1000, Math.round((orig * (1 - pct / 100)) / 1000) * 1000);
+            return handleQuickUpdateProductField(p, { originalPrice: orig, price: nextPrice });
+          }));
+          alert(`Đã áp dụng Flash Sale -${pct}% cho ${targets.length} sản phẩm!`);
+        };
+
         const fetchOrders = async (overrideSearch, overrideStatus) => {
           setOrdersLoading(true);
           setOrderError('');
@@ -1801,6 +1908,34 @@
                         </span>
                       </button>
 
+                      <button
+                        onClick={() => setActiveTab('shipping_zones')}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                          activeTab === 'shipping_zones'
+                            ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
+                            : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span>🗺️</span>
+                          <span>Khu Vực Giao Hàng</span>
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('flash_sales')}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                          activeTab === 'flash_sales'
+                            ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
+                            : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span>⚡</span>
+                          <span>Flash Sale Tự Động</span>
+                        </span>
+                      </button>
+
                       {/* Mục Lớn: Quản Lý Tài Khoản & Phân Quyền */}
                       <div>
                         <button
@@ -1978,6 +2113,8 @@
                     {activeTab === 'roles' && 'Hệ Thống: Phân Quyền Vai Trò Chi Tiết (RBAC)'}
                     {activeTab === 'products' && 'Medusa Commerce: Quản Lý Sản Phẩm Hạt, Pate & Tồn Kho'}
                     {activeTab === 'orders' && 'Medusa Fulfillment: Quản Lý Đơn Hàng'}
+                    {activeTab === 'shipping_zones' && 'Medusa Shipping: Khu Vực Giao Hàng & Biểu Phí'}
+                    {activeTab === 'flash_sales' && 'Medusa Sales: Chiến Dịch Flash Sale Tự Động'}
                     {activeTab === 'customers' && 'Khách Hàng Thành Viên (Xác Thực Gmail OTP)'}
                     {activeTab === 'posts' && 'PayloadCMS: Quản Trị Cẩm Nang Nuôi Mèo (Xem & Chỉnh Sửa Trực Tiếp)'}
                     {activeTab === 'banners' && 'PayloadCMS: Quản Lý Banner Trang Chủ & Khuyến Mãi'}
@@ -3253,6 +3390,101 @@
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* 3.1. TAB SHIPPING ZONES (KHU VỰC GIAO HÀNG - NEON DB) */}
+                {activeTab === 'shipping_zones' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a] flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🗺️ Cấu Hình Khu Vực Giao Hàng & Ngưỡng Freeship (Saleor Shipping Zones)</h3>
+                        <p className="text-xs text-slate-400">Quản lý phí vận chuyển theo khu vực và ngưỡng miễn phí vận chuyển lưu trên Neon PostgreSQL.</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingRule(null);
+                          setRuleForm({ rule_type: 'shipping_zone', name: '', is_active: true, provinces: '', base_fee: 25000, free_shipping_threshold: 300000, estimated_days: '1 - 3 ngày', discount_percent: 15, target_category: 'all', start_at: '', end_at: '' });
+                          setIsRuleModalOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg"
+                      >
+                        ➕ Thêm Khu Vực Ship
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {commerceRules.filter((r) => r.rule_type === 'shipping_zone').map((zone) => (
+                        <div key={zone.id} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-slate-100 text-sm">{zone.name}</h4>
+                              <p className="text-xs text-slate-400 mt-0.5">📍 {zone.config?.provinces || 'Toàn quốc'}</p>
+                            </div>
+                            <button onClick={() => handleToggleCommerceRule(zone)} className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${zone.is_active ? 'bg-emerald-950 text-emerald-400 border-emerald-800/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                              {zone.is_active ? 'Đang bật' : 'Đã tắt'}
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs bg-[#121214] p-3 rounded-lg border border-[#27272a]">
+                            <div><span className="text-slate-500 block">Phí ship cơ bản:</span><strong className="text-orange-400">{Number(zone.config?.base_fee || 0).toLocaleString('vi-VN')} ₫</strong></div>
+                            <div><span className="text-slate-500 block">Freeship từ đơn:</span><strong className="text-emerald-400">{Number(zone.config?.free_shipping_threshold || 0).toLocaleString('vi-VN')} ₫</strong></div>
+                          </div>
+                          <div className="flex items-center justify-between text-xs pt-1">
+                            <span className="text-slate-400">⏱️ {zone.config?.estimated_days || '2 - 3 ngày'}</span>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => { setEditingRule(zone); setRuleForm({ rule_type: 'shipping_zone', name: zone.name, is_active: zone.is_active, provinces: zone.config?.provinces || '', base_fee: zone.config?.base_fee || 0, free_shipping_threshold: zone.config?.free_shipping_threshold || 0, estimated_days: zone.config?.estimated_days || '', discount_percent: 15, target_category: 'all', start_at: '', end_at: '' }); setIsRuleModalOpen(true); }} className="px-2.5 py-1 font-bold bg-blue-950/60 text-blue-400 border border-blue-800/40 rounded">Sửa</button>
+                              <button onClick={() => handleDeleteCommerceRule(zone.id)} className="px-2.5 py-1 font-bold bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded">Xóa</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3.2. TAB FLASH SALES TỰ ĐỘNG (SALEOR AUTOMATIC SALES - NEON DB) */}
+                {activeTab === 'flash_sales' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a] flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">⚡ Chiến Dịch Flash Sale Tự Động Theo Danh Mục</h3>
+                        <p className="text-xs text-slate-400">Giảm giá trực tiếp hàng loạt theo danh mục sản phẩm mà không cần nhập mã voucher.</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingRule(null);
+                          setRuleForm({ rule_type: 'flash_sale', name: '', is_active: true, provinces: '', base_fee: 0, free_shipping_threshold: 0, estimated_days: '', discount_percent: 15, target_category: 'thuc-an-hat', start_at: '', end_at: '' });
+                          setIsRuleModalOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg"
+                      >
+                        ➕ Tạo Chiến Dịch Sale
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {commerceRules.filter((r) => r.rule_type === 'flash_sale').map((sale) => (
+                        <div key={sale.id} className="bg-[#18181b] p-5 rounded-xl border border-orange-500/30 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-slate-100 text-sm">{sale.name}</h4>
+                              <p className="text-xs text-slate-400 mt-0.5">Danh mục: <strong className="text-indigo-300">{sale.config?.target_category || 'all'}</strong></p>
+                            </div>
+                            <span className="text-sm font-black text-orange-400 bg-orange-950/60 border border-orange-800 px-2.5 py-1 rounded-lg">-{sale.config?.discount_percent || 0}%</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            🕒 {sale.config?.start_at ? sale.config.start_at.replace('T', ' ') : 'Ngay lập tức'} → {sale.config?.end_at ? sale.config.end_at.replace('T', ' ') : 'Không giới hạn'}
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#27272a] text-xs">
+                            <button onClick={() => handleApplyFlashSaleToProducts(sale)} className="px-3 py-1.5 font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg">
+                              ⚡ Áp dụng giá Sale vào SP
+                            </button>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => handleToggleCommerceRule(sale)} className="px-2.5 py-1 font-bold bg-[#27272a] text-slate-300 rounded">{sale.is_active ? 'Đang bật' : 'Đã tắt'}</button>
+                              <button onClick={() => handleDeleteCommerceRule(sale.id)} className="px-2.5 py-1 font-bold bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded">Xóa</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -4552,6 +4784,81 @@
                     <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
                       <button type="button" onClick={() => setIsColModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
                       <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Lưu Bộ Sưu Tập</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL SHIPPING ZONE / FLASH SALE */}
+            {isRuleModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-lg w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">
+                      {ruleForm.rule_type === 'shipping_zone' ? '🗺️ Cấu Hình Khu Vực Giao Hàng' : '⚡ Cấu Hình Flash Sale Tự Động'}
+                    </h3>
+                    <button onClick={() => setIsRuleModalOpen(false)} className="text-slate-400 hover:text-white font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleSaveCommerceRule} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Tên quy tắc *</label>
+                      <input type="text" required value={ruleForm.name} onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })} placeholder={ruleForm.rule_type === 'shipping_zone' ? 'VD: Nội thành TP.HCM' : 'VD: Flash Sale Pate Mèo'} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    {ruleForm.rule_type === 'shipping_zone' ? (
+                      <>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Tỉnh / Thành áp dụng</label>
+                          <input type="text" value={ruleForm.provinces} onChange={(e) => setRuleForm({ ...ruleForm, provinces: e.target.value })} placeholder="VD: Hà Nội, TP. Hồ Chí Minh" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Phí ship cơ bản (₫)</label>
+                            <input type="number" min="0" value={ruleForm.base_fee} onChange={(e) => setRuleForm({ ...ruleForm, base_fee: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-orange-400 font-bold" />
+                          </div>
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Freeship từ đơn (₫)</label>
+                            <input type="number" min="0" value={ruleForm.free_shipping_threshold} onChange={(e) => setRuleForm({ ...ruleForm, free_shipping_threshold: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-emerald-400 font-bold" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Thời gian dự kiến</label>
+                          <input type="text" value={ruleForm.estimated_days} onChange={(e) => setRuleForm({ ...ruleForm, estimated_days: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Phần trăm giảm (%)</label>
+                            <input type="number" min="1" max="90" value={ruleForm.discount_percent} onChange={(e) => setRuleForm({ ...ruleForm, discount_percent: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-orange-400 font-bold" />
+                          </div>
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Danh mục áp dụng</label>
+                            <select value={ruleForm.target_category} onChange={(e) => setRuleForm({ ...ruleForm, target_category: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                              <option value="all">Tất cả sản phẩm</option>
+                              <option value="thuc-an-hat">Thức ăn hạt</option>
+                              <option value="pate-cho-meo">Pate cho mèo</option>
+                              <option value="cat-ve-sinh">Cát vệ sinh</option>
+                              <option value="phu-kien">Phụ kiện & Đồ chơi</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Bắt đầu</label>
+                            <input type="datetime-local" value={ruleForm.start_at} onChange={(e) => setRuleForm({ ...ruleForm, start_at: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                          </div>
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Kết thúc</label>
+                            <input type="datetime-local" value={ruleForm.end_at} onChange={(e) => setRuleForm({ ...ruleForm, end_at: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsRuleModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">💾 Lưu Quy Tắc</button>
                     </div>
                   </form>
                 </div>
