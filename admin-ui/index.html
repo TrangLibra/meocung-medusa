@@ -785,7 +785,9 @@
           inventory: 100,
           vendor: 'Mèo Cưng Official',
           image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800',
-          description: ''
+          description: '',
+          variants: [],
+          attributes: []
         });
 
         // Modal bài viết cẩm nang PayloadCMS
@@ -1534,7 +1536,9 @@
             inventory: 100,
             vendor: 'Mèo Cưng Official',
             image: '',
-            description: ''
+            description: '',
+            variants: [],
+            attributes: []
           });
           setIsProductModalOpen(true);
         };
@@ -1549,7 +1553,9 @@
             inventory: p.inventory || 100,
             vendor: p.vendor || 'Mèo Cưng Official',
             image: p.image || '',
-            description: p.description || ''
+            description: p.description || '',
+            variants: Array.isArray(p.variants) ? p.variants : [],
+            attributes: Array.isArray(p.attributes) ? p.attributes : []
           });
           setIsProductModalOpen(true);
         };
@@ -2597,7 +2603,21 @@
                                 <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover bg-[#121214] border border-[#27272a] shrink-0" />
                                 <div>
                                   <div className="font-bold text-slate-100 text-sm line-clamp-1">{p.name}</div>
-                                  <div className="text-[10px] text-slate-500 font-mono">Quy cách: {p.weight || '1kg'}</div>
+                                  <div className="text-[10px] text-slate-500 font-mono">
+                                    Quy cách: {p.weight || '1kg'}
+                                    {Array.isArray(p.variants) && p.variants.length > 0 && (
+                                      <span className="ml-2 text-indigo-400">• 🧬 {p.variants.length} biến thể</span>
+                                    )}
+                                  </div>
+                                  {Array.isArray(p.attributes) && p.attributes.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {p.attributes.slice(0, 3).map((a, ai) => (
+                                        <span key={ai} className="text-[9px] px-1.5 py-0.5 rounded bg-[#27272a] text-slate-300 border border-[#3f3f46]">
+                                          {a.name}: {a.value}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                               <td className="py-3.5 px-6">
@@ -4221,6 +4241,49 @@
                           className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
                         />
                       </div>
+                    </div>
+
+                    {/* NHÓM 3 (SALEOR CATALOG): BIẾN THỂ SẢN PHẨM (VARIANTS) & THUỘC TÍNH LỌC (ATTRIBUTES) */}
+                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-indigo-300 uppercase text-[11px]">🧬 Biến thể sản phẩm (SKU / Khối lượng / Hương vị)</label>
+                        <button
+                          type="button"
+                          onClick={() => setProductForm({ ...productForm, variants: [...(productForm.variants || []), { title: '', sku: '', price: Number(productForm.price || 150000), inventory: 50 }] })}
+                          className="px-2 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-bold text-[10px]"
+                        >
+                          + Thêm biến thể
+                        </button>
+                      </div>
+                      {(productForm.variants || []).map((v, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-1.5 items-center">
+                          <input type="text" placeholder="Tên (VD: Túi 2kg)" value={v.title || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, title: e.target.value } : x) })} className="col-span-4 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100" />
+                          <input type="text" placeholder="SKU" value={v.sku || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, sku: e.target.value } : x) })} className="col-span-3 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100 font-mono" />
+                          <input type="number" placeholder="Giá" value={v.price || 0} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, price: Number(e.target.value) } : x) })} className="col-span-2 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-orange-400 font-bold" />
+                          <input type="number" placeholder="Kho" value={v.inventory || 0} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, inventory: Number(e.target.value) } : x) })} className="col-span-2 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-emerald-400" />
+                          <button type="button" onClick={() => setProductForm({ ...productForm, variants: productForm.variants.filter((_, i) => i !== idx) })} className="col-span-1 text-rose-400 font-bold text-center">✕</button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-emerald-300 uppercase text-[11px]">🏷️ Thuộc tính lọc (Độ tuổi mèo, Hương vị, Xuất xứ...)</label>
+                        <button
+                          type="button"
+                          onClick={() => setProductForm({ ...productForm, attributes: [...(productForm.attributes || []), { name: '', value: '' }] })}
+                          className="px-2 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-bold text-[10px]"
+                        >
+                          + Thêm thuộc tính
+                        </button>
+                      </div>
+                      {(productForm.attributes || []).map((a, idx) => (
+                        <div key={idx} className="grid grid-cols-11 gap-1.5 items-center">
+                          <input type="text" placeholder="Thuộc tính (VD: Hương vị)" value={a.name || ''} onChange={(e) => setProductForm({ ...productForm, attributes: productForm.attributes.map((x, i) => i === idx ? { ...x, name: e.target.value } : x) })} className="col-span-5 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100" />
+                          <input type="text" placeholder="Giá trị (VD: Cá hồi Na Uy)" value={a.value || ''} onChange={(e) => setProductForm({ ...productForm, attributes: productForm.attributes.map((x, i) => i === idx ? { ...x, value: e.target.value } : x) })} className="col-span-5 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100" />
+                          <button type="button" onClick={() => setProductForm({ ...productForm, attributes: productForm.attributes.filter((_, i) => i !== idx) })} className="col-span-1 text-rose-400 font-bold text-center">✕</button>
+                        </div>
+                      ))}
                     </div>
 
                     <div>
