@@ -221,6 +221,8 @@
         }
       ];
 
+      const INITIAL_POSTS = [];
+
       function SingleUnifiedDashboard() {
         const [activeTab, setActiveTab] = useState('products');
         
@@ -334,7 +336,7 @@
             if (!res.ok) return alert(data.error || 'Không thể lưu tài khoản!');
             setIsCustomerModalOpen(false);
             fetchCustomers();
-          } catch {
+          } catch (_e) {
             alert('Lỗi kết nối tới API Neon!');
           }
         };
@@ -348,7 +350,7 @@
               body: JSON.stringify({ status: nextStatus }),
             });
             if (res.ok) fetchCustomers();
-          } catch {}
+          } catch (_e) {}
         };
 
         const handleDeleteCustomer = async (c) => {
@@ -356,7 +358,7 @@
           try {
             const res = await fetch(`${customerApiBase}/${c.id}`, { method: 'DELETE' });
             if (res.ok) fetchCustomers();
-          } catch {}
+          } catch (_e) {}
         };
 
         // Quản lý đơn hàng & vận chuyển (lưu trực tiếp trên Neon PostgreSQL)
@@ -428,7 +430,7 @@
               body: JSON.stringify({ status: nextStatus }),
             });
             if (res.ok) fetchOrders();
-          } catch {}
+          } catch (_e) {}
         };
 
         const handleUpdateTracking = async (order) => {
@@ -441,7 +443,7 @@
               body: JSON.stringify({ tracking_code: code.trim() }),
             });
             if (res.ok) fetchOrders();
-          } catch {}
+          } catch (_e) {}
         };
 
         const handleDeleteOrder = async (order) => {
@@ -449,7 +451,7 @@
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, { method: 'DELETE' });
             if (res.ok) fetchOrders();
-          } catch {}
+          } catch (_e) {}
         };
 
         // Modal sản phẩm Medusa
