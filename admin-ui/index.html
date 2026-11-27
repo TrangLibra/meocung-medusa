@@ -1806,10 +1806,10 @@
         return (
           <div className="flex h-screen w-screen overflow-hidden bg-[#121214] font-sans">
             {/* SIDEBAR TỔNG HỢP DUY NHẤT */}
-            <aside className="w-64 border-r border-[#27272a] bg-[#18181b] flex flex-col justify-between shrink-0 select-none shadow-xl z-20">
-              <div>
+            <aside className="w-64 h-full border-r border-[#27272a] bg-[#18181b] flex flex-col justify-between shrink-0 select-none shadow-xl z-20 overflow-hidden">
+              <div className="flex-1 min-h-0 flex flex-col">
                 {/* Logo & Info */}
-                <div className="p-4 border-b border-[#27272a] flex items-center gap-3 bg-gradient-to-r from-orange-500/10 to-transparent">
+                <div className="p-4 border-b border-[#27272a] flex items-center gap-3 bg-gradient-to-r from-orange-500/10 to-transparent shrink-0">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-base shadow-sm">
                     🐾
                   </div>
@@ -1820,7 +1820,7 @@
                 </div>
 
                 {/* Menu Điều hướng */}
-                <nav className="p-3 space-y-4 text-xs font-medium">
+                <nav className="flex-1 overflow-y-auto p-3 space-y-4 text-xs font-medium">
                   {/* MEDUSA COMMERCE ENGINE */}
                   <div>
                     <div className="px-3 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
