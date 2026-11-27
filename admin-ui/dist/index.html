@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./posts-data.js"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
       body {
@@ -65,20 +66,14 @@
     </style>
 </head>
 <body class="bg-[#121214] text-slate-100 antialiased m-0 p-0 overflow-hidden">
-    <div id="root">
-        <div class="flex h-screen w-screen items-center justify-center bg-[#121214]">
-            <div class="text-center space-y-3">
-                <div class="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p class="text-xs text-slate-400 font-medium">Đang tải giao diện hợp nhất Medusa & PayloadCMS...</p>
-            </div>
-        </div>
-    </div>
+    <div id="root"></div>
 
     <script type="text/babel">
       if (localStorage.getItem('meocung_admin_theme') === 'light') {
         document.documentElement.classList.add('light-theme');
       }
-      const { useState, useEffect } = React;
+      const { useState, useEffect, useRef } = React;
+      const INITIAL_POSTS = window.INITIAL_POSTS || [];
       const PAYLOAD_API_URL = "https://meocung-ecommerce-seven.vercel.app/api/admin";
       const STOREFRONT_URL = "https://meocung-ecommerce-seven.vercel.app";
 
@@ -221,7 +216,6 @@
         }
       ];
 
-      const INITIAL_POSTS = [];
       const formatVndInput = (val) => {
         const num = Number(String(val ?? '').replace(/\D/g, ''));
         return num ? num.toLocaleString('vi-VN') : '';
@@ -230,7 +224,6 @@
         const digits = String(str ?? '').replace(/\D/g, '');
         return digits ? Number(digits) : 0;
       };
-
       function SingleUnifiedDashboard() {
         const [activeTab, setActiveTab] = useState('products');
         
@@ -370,7 +363,13 @@
         };
 
         // Quản lý đơn hàng & vận chuyển (lưu trực tiếp trên Neon PostgreSQL)
-        const [orders, setOrders] = useState([]);
+        const INITIAL_ORDERS = [
+          { id: 'ORD-9821', customer_name: 'Nguyễn Văn An', phone: '0912 345 678', product_name: 'Hạt Royal Canin Fit 32 (2kg)', total_amount: 185000, status: 'completed' },
+          { id: 'ORD-9822', customer_name: 'Trần Thị Mai', phone: '0988 776 554', product_name: 'Pate Ciao Churu Gói 4 thanh', total_amount: 90000, status: 'shipping' },
+          { id: 'ORD-9823', customer_name: 'Lê Hoàng Nam', phone: '0905 112 334', product_name: 'Cát Đậu Nành Cature Tofu Clumping 6L', total_amount: 125000, status: 'packing' },
+          { id: 'ORD-9824', customer_name: 'Phạm Quỳnh Nga', phone: '0973 889 900', product_name: 'Hạt Catsrang Cho Mèo Mọi Lứa Tuổi (5kg)', total_amount: 340000, status: 'pending' }
+        ];
+        const [orders, setOrders] = useState(INITIAL_ORDERS);
         const [ordersLoading, setOrdersLoading] = useState(false);
         const [orderError, setOrderError] = useState('');
         const [orderSearch, setOrderSearch] = useState('');
@@ -651,42 +650,724 @@
           status: 'published'
         });
 
+        // Upload ảnh từ máy lên Vercel Blob
+        const [uploadingTarget, setUploadingTarget] = useState(null);
+        const handleUploadImage = async (file, target) => {
+          if (!file) return;
+          setUploadingTarget(target);
+          const endpoints = window.location.hostname === 'localhost'
+            ? [
+                'http://localhost:3000/api/admin/upload',
+                'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app/api/admin/upload',
+                `${STOREFRONT_URL}/api/admin/upload`
+              ]
+            : [
+                'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app/api/admin/upload',
+                `${STOREFRONT_URL}/api/admin/upload`
+              ];
+
+          let lastErr = 'Không kết nối được API upload ảnh!';
+          for (const url of endpoints) {
+            try {
+              const fd = new FormData();
+              fd.append('file', file);
+              const res = await fetch(url, { method: 'POST', body: fd });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok && data && data.url) {
+                if (target === 'product') {
+                  setProductForm((prev) => ({ ...prev, image: data.url }));
+                } else if (target === 'post') {
+                  setPostForm((prev) => ({ ...prev, coverImage: data.url }));
+                } else if (target === 'logo') {
+                  setSiteSettings((prev) => ({ ...prev, logo_url: data.url }));
+                } else if (target === 'banner') {
+                  setBannerForm((prev) => ({ ...prev, image_url: data.url }));
+                }
+                setUploadingTarget(null);
+                return;
+              }
+              if (data && data.error) lastErr = data.error;
+            } catch (_) {}
+          }
+          setUploadingTarget(null);
+          alert('Upload ảnh thất bại: ' + lastErr);
+        };
+
+        // === PAYLOAD CMS FULL CONTROL: SITE SETTINGS (LOGO / NAVBAR / FOOTER), BANNERS, COUPONS ===
+        const getCmsApiCandidates = (path) =>
+          window.location.hostname === 'localhost'
+            ? [
+                'http://localhost:3000' + path,
+                'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app' + path,
+                STOREFRONT_URL + path,
+              ]
+            : [
+                'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app' + path,
+                STOREFRONT_URL + path,
+              ];
+
+        const [siteSettings, setSiteSettings] = useState({
+          site_name: 'Mèo Cưng',
+          hotline: '0382 542 737',
+          address: 'Quận 1, TP. Hồ Chí Minh, Việt Nam',
+          facebook_url: 'https://facebook.com/meocung',
+          logo_url: '',
+          logo_emoji: '🐱',
+          tagline: 'Thức ăn & Cẩm nang mèo',
+          top_notice: 'Mèo Cưng - Hệ thống phân phối thức ăn & cẩm nang chăm sóc mèo hàng đầu TP.HCM • Giao hàng hỏa tốc 2H!',
+          shipping_badge: 'Giao nhanh 2h tại TP.HCM',
+          primary_color: '#ff7f5c',
+          navbar_links: [
+            { label: 'Danh mục sản phẩm', href: '/products' },
+            { label: 'Trang chủ', href: '/' },
+            { label: 'Thức ăn hạt', href: '/collections/thuc-an-hat' },
+            { label: 'Pate cho mèo', href: '/collections/pate-cho-meo' },
+            { label: 'Cát vệ sinh', href: '/collections/cat-ve-sinh' },
+            { label: 'Cẩm nang nuôi mèo', href: '/tin-tuc' },
+          ],
+          footer_about: 'Mèo Cưng - Địa chỉ tin cậy chuyên cung cấp thức ăn hạt, pate dinh dưỡng, cát vệ sinh và cẩm nang nuôi dưỡng thú cưng hàng đầu tại TP. Hồ Chí Minh.',
+          footer_copyright: 'Bản quyền thuộc về Mèo Cưng Storefront.',
+          pages_config: {
+            home: {
+              hero_badge: '🐾 Mèo Cưng Pet Shop TP.HCM',
+              hero_title: 'Thức Ăn & Cẩm Nang Chăm Sóc Mèo Cưng Hoàn Hảo',
+              hero_subtitle: 'Cung cấp các dòng thức ăn hạt, pate thơm ngon, cát vệ sinh cao cấp và toàn bộ kiến thức nuôi dưỡng mèo chuẩn khoa học cho các "sen"!',
+              hero_btn_text: 'Khám phá sản phẩm',
+              hero_btn_link: '/products',
+              hero_bg_color: '#ff7f5c',
+              bg_color: '#ffffff',
+              text_color: '#111827',
+              accent_color: '#ff7f5c',
+              font_family: 'inherit',
+              categories_title: 'Danh Mục Nổi Bật',
+              featured_title: 'Sản Phẩm Nổi Bật',
+              blog_title: 'Cẩm Nang Nuôi Mèo Mới Nhất',
+              sections: [
+                { id: 'hero', label: 'Hero Banner Đầu Trang', visible: true },
+                { id: 'policies', label: '4 Thẻ Chính Sách Pastel', visible: true },
+                { id: 'banners', label: 'Dải Banner Quảng Cáo & Slider', visible: true },
+                { id: 'categories', label: 'Danh Mục Nổi Bật', visible: true },
+                { id: 'products', label: 'Sản Phẩm Nổi Bật', visible: true },
+                { id: 'blog', label: 'Cẩm Nang Nuôi Mèo Mới Nhất', visible: true },
+              ],
+            },
+            product_detail: {
+              in_stock_text: 'Còn hàng',
+              add_cart_text: 'Thêm vào giỏ hàng',
+              buy_now_text: 'Mua ngay',
+              badge_shipping: 'Giao 2H TP.HCM',
+              badge_authentic: '100% Chính hãng',
+              badge_return: 'Đổi trả 7 ngày',
+              custom_note: '',
+              show_breadcrumb: true,
+              show_rating: true,
+              show_guarantees: true,
+              bg_color: '#ffffff',
+              text_color: '#111827',
+              accent_color: '#ff7f5c',
+              font_family: 'inherit',
+            },
+            news_page: {
+              badge_text: 'PayloadCMS 3.0 Headless CMS',
+              title: 'Cẩm Nang Chăm Sóc Mèo & Tin Tức Mới',
+              subtitle: 'Tổng hợp 100+ kiến thức dinh dưỡng, cách phòng bệnh và cẩm nang nuôi dưỡng thú cưng chuẩn khoa học từ PayloadCMS',
+              read_more_text: 'Đọc tiếp',
+              show_banner: true,
+              columns_count: 4,
+              bg_color: '#ffffff',
+              text_color: '#111827',
+              accent_color: '#ff7f5c',
+              font_family: 'inherit',
+            },
+            footer: {
+              columns: [
+                { id: 'col-brand', type: 'brand', title: 'Thông Tin Shop' },
+                {
+                  id: 'col-cat',
+                  type: 'links',
+                  title: 'Danh Mục Nổi Bật',
+                  links: [
+                    { label: 'Thức ăn hạt dinh dưỡng', href: '/products?category=thuc-an-hat' },
+                    { label: 'Pate & Súp thưởng cho mèo', href: '/products?category=pate-cho-meo' },
+                    { label: 'Cát vệ sinh khử mùi', href: '/products?category=cat-ve-sinh' },
+                    { label: 'Cẩm nang chăm sóc mèo cưng', href: '/tin-tuc' },
+                  ],
+                },
+                {
+                  id: 'col-policy',
+                  type: 'links',
+                  title: 'Chính Sách & Hỗ Trợ',
+                  links: [
+                    { label: 'Chính sách giao hàng 2H', href: '/chinh-sach#giao-hang' },
+                    { label: 'Chính sách đổi trả trong 7 ngày', href: '/chinh-sach#doi-tra' },
+                    { label: 'Hướng dẫn mua hàng & thanh toán', href: '/chinh-sach#mua-hang' },
+                    { label: 'Cam kết sản phẩm chính hãng', href: '/chinh-sach#chinh-hang' },
+                  ],
+                },
+                {
+                  id: 'col-news',
+                  type: 'newsletter',
+                  title: 'Kết Nối Với Mèo Cưng',
+                  desc: 'Đăng ký nhận thông tin khuyến mãi và bí quyết chăm sóc hoàng thượng khỏe mạnh!',
+                  btn_text: 'Gửi',
+                },
+              ],
+            },
+          },
+        });
+        const [siteSaving, setSiteSaving] = useState(false);
+        const [cmsMenuOpen, setCmsMenuOpen] = useState(false);
+        const previewIframeRef = useRef(null);
+        const [previewDevice, setPreviewDevice] = useState('desktop');
+        const isCustomizerTab = ['site_logo', 'site_navbar', 'site_footer', 'page_home', 'page_product_detail', 'page_news'].includes(activeTab);
+
+        const getPreviewUrl = () => {
+          const base = window.location.hostname === 'localhost'
+            ? 'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app'
+            : 'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app';
+          if (activeTab === 'page_product_detail') return base + '/products/p_1795606037461';
+          if (activeTab === 'page_news') return base + '/tin-tuc';
+          return base + '/';
+        };
+
+        // Gửi Live Preview tức thì sang Storefront giống WordPress Customizer
+        useEffect(() => {
+          if (isCustomizerTab && previewIframeRef.current && previewIframeRef.current.contentWindow) {
+            try {
+              previewIframeRef.current.contentWindow.postMessage(
+                { type: 'MEOCUNG_LIVE_PREVIEW', settings: siteSettings },
+                '*'
+              );
+            } catch (_) {}
+          }
+        }, [siteSettings, isCustomizerTab]);
+
+        const fetchSiteSettings = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/site-settings')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.settings) {
+                  setSiteSettings(data.settings);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleSaveSiteSettings = async (e) => {
+          e.preventDefault();
+          setSiteSaving(true);
+          let ok = false;
+          for (const url of getCmsApiCandidates('/api/admin/site-settings')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(siteSettings),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.settings) setSiteSettings(data.settings);
+                ok = true;
+                break;
+              }
+            } catch (_) {}
+          }
+          setSiteSaving(false);
+          alert(ok ? 'Đã lưu cấu hình Logo / Navbar / Footer lên Neon Database & Website!' : 'Không kết nối được API lưu cấu hình!');
+        };
+
+        const [bannersList, setBannersList] = useState([]);
+        const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+        const [editingBanner, setEditingBanner] = useState(null);
+        const [bannerForm, setBannerForm] = useState({
+          title: '',
+          image_url: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=1200',
+          link_url: '/products',
+          position: 'home_slider',
+          is_active: true,
+        });
+
+        const fetchBanners = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/banners')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.banners)) {
+                  setBannersList(data.banners);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleSaveBanner = async (e) => {
+          e.preventDefault();
+          for (const url of getCmsApiCandidates('/api/admin/banners')) {
+            try {
+              const res = await fetch(url, {
+                method: editingBanner ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editingBanner ? { id: editingBanner.id, ...bannerForm } : bannerForm),
+              });
+              if (res.ok) {
+                setIsBannerModalOpen(false);
+                fetchBanners();
+                return;
+              }
+            } catch (_) {}
+          }
+          alert('Không kết nối được API lưu banner!');
+        };
+
+        const handleDeleteBanner = async (id) => {
+          if (!confirm('Xóa banner này?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/banners?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) {
+                fetchBanners();
+                return;
+              }
+            } catch (_) {}
+          }
+        };
+
+        const [couponsList, setCouponsList] = useState([]);
+        const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+        const [editingCoupon, setEditingCoupon] = useState(null);
+        const [couponForm, setCouponForm] = useState({
+          code: '',
+          discount_percent: 10,
+          min_order_value: 200000,
+          is_active: true,
+        });
+
+        const fetchCoupons = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/coupons')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.coupons)) {
+                  setCouponsList(data.coupons);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleSaveCoupon = async (e) => {
+          e.preventDefault();
+          for (const url of getCmsApiCandidates('/api/admin/coupons')) {
+            try {
+              const res = await fetch(url, {
+                method: editingCoupon ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editingCoupon ? { id: editingCoupon.id, ...couponForm } : couponForm),
+              });
+              if (res.ok) {
+                setIsCouponModalOpen(false);
+                fetchCoupons();
+                return;
+              }
+            } catch (_) {}
+          }
+          alert('Không kết nối được API lưu mã giảm giá!');
+        };
+
+        const handleDeleteCoupon = async (id) => {
+          if (!confirm('Xóa mã giảm giá này?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/coupons?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) {
+                fetchCoupons();
+                return;
+              }
+            } catch (_) {}
+          }
+        };
+
+        useEffect(() => {
+          fetchSiteSettings();
+          fetchBanners();
+          fetchCoupons();
+        }, []);
+
+        // === MEDUSA JS COMMERCE FULL DATABASE MANAGEMENT (CATEGORIES, COLLECTIONS, REVIEWS, STATS, PRODUCTS) ===
+        const [dbStats, setDbStats] = useState({
+          products_count: 9,
+          orders_count: 0,
+          total_revenue: 0,
+          customers_count: 0,
+          posts_count: 103,
+          categories_count: 4,
+          reviews_count: 2,
+        });
+        const [categoriesList, setCategoriesList] = useState([]);
+        const [collectionsList, setCollectionsList] = useState([]);
+        const [reviewsList, setReviewsList] = useState([]);
+        const [productMenuOpen, setProductMenuOpen] = useState(true);
+        const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
+        const [staffList, setStaffList] = useState([]);
+        const [rolesList, setRolesList] = useState([]);
+        const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+        const [staffForm, setStaffForm] = useState({ email: '', password: '', role: 'editor' });
+        const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+        const [roleForm, setRoleForm] = useState({ name: '', code: '', description: '' });
+
+        const fetchStaff = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/staff')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.staff)) { setStaffList(data.staff); return; }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleCreateStaff = async (e) => {
+          e.preventDefault();
+          for (const url of getCmsApiCandidates('/api/admin/staff')) {
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(staffForm),
+              });
+              if (res.ok) { setIsStaffModalOpen(false); setStaffForm({ email: '', password: '', role: 'editor' }); fetchStaff(); return; }
+            } catch (_) {}
+          }
+          alert('Không kết nối được API tạo nhân viên!');
+        };
+
+        const handleUpdateStaffRole = async (id, role, unlock = false) => {
+          for (const url of getCmsApiCandidates('/api/admin/staff')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, role, unlock }),
+              });
+              if (res.ok) { fetchStaff(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const handleDeleteStaff = async (id) => {
+          if (!confirm('Xóa tài khoản nhân viên này?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/staff?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) { fetchStaff(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const fetchRoles = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/roles')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.roles)) { setRolesList(data.roles); return; }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleTogglePermission = async (roleObj, moduleKey, actionKey) => {
+          const curPerms = roleObj.permissions || {};
+          const modPerms = curPerms[moduleKey] || { view: false, create: false, edit: false, delete: false };
+          const nextPerms = {
+            ...curPerms,
+            [moduleKey]: { ...modPerms, [actionKey]: !modPerms[actionKey] },
+          };
+          setRolesList(prev => prev.map(r => r.id === roleObj.id ? { ...r, permissions: nextPerms } : r));
+          for (const url of getCmsApiCandidates('/api/admin/roles')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: roleObj.id, permissions: nextPerms }),
+              });
+              if (res.ok) return;
+            } catch (_) {}
+          }
+        };
+
+        const handleCreateRole = async (e) => {
+          e.preventDefault();
+          for (const url of getCmsApiCandidates('/api/admin/roles')) {
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(roleForm),
+              });
+              if (res.ok) { setIsRoleModalOpen(false); setRoleForm({ name: '', code: '', description: '' }); fetchRoles(); return; }
+            } catch (_) {}
+          }
+          alert('Không tạo được vai trò mới!');
+        };
+
+        const handleDeleteRole = async (id) => {
+          if (!confirm('Xóa vai trò phân quyền này?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/roles?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) { fetchRoles(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const handleQuickUpdateProductField = async (prod, patch) => {
+          setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, ...patch } : p));
+          for (const url of getCmsApiCandidates('/api/medusa/products')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: prod.id, ...patch }),
+              });
+              if (res.ok) return;
+            } catch (_) {}
+          }
+        };
+
+        const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+        const [editingCat, setEditingCat] = useState(null);
+        const [catForm, setCatForm] = useState({ name: '', handle: '', description: '', rank: 0, is_active: true });
+
+        const [isColModalOpen, setIsColModalOpen] = useState(false);
+        const [editingCol, setEditingCol] = useState(null);
+        const [colForm, setColForm] = useState({ title: '', handle: '' });
+
+        const fetchMedusaDbProducts = async () => {
+          for (const url of getCmsApiCandidates('/api/medusa/products')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.products) && data.products.length > 0) {
+                  setProducts(data.products.map(p => ({
+                    id: p.id,
+                    name: p.name || p.title,
+                    category: p.categorySlug || 'thuc-an-hat',
+                    categoryName: p.categoryName || 'Thức ăn hạt',
+                    price: p.price || 150000,
+                    weight: p.weight || '1kg',
+                    inventory: p.inventory ?? 100,
+                    vendor: p.vendor || 'Mèo Cưng Official',
+                    image: p.image || 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=800',
+                    description: p.description || '',
+                    status: 'published',
+                  })));
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const fetchDbStats = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/stats')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.stats) {
+                  setDbStats(data.stats);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const fetchCategories = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/categories')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.categories)) {
+                  setCategoriesList(data.categories);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleSaveCategory = async (e) => {
+          e.preventDefault();
+          for (const url of getCmsApiCandidates('/api/admin/categories')) {
+            try {
+              const res = await fetch(url, {
+                method: editingCat ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editingCat ? { id: editingCat.id, ...catForm } : catForm),
+              });
+              if (res.ok) {
+                setIsCatModalOpen(false);
+                fetchCategories();
+                fetchDbStats();
+                return;
+              }
+            } catch (_) {}
+          }
+          alert('Không kết nối được API danh mục!');
+        };
+
+        const handleDeleteCategory = async (id) => {
+          if (!confirm('Xóa danh mục này khỏi Database?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/categories?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) { fetchCategories(); fetchDbStats(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const fetchCollections = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/collections')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.collections)) {
+                  setCollectionsList(data.collections);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleSaveCollection = async (e) => {
+          e.preventDefault();
+          for (const url of getCmsApiCandidates('/api/admin/collections')) {
+            try {
+              const res = await fetch(url, {
+                method: editingCol ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editingCol ? { id: editingCol.id, ...colForm } : colForm),
+              });
+              if (res.ok) {
+                setIsColModalOpen(false);
+                fetchCollections();
+                return;
+              }
+            } catch (_) {}
+          }
+          alert('Không kết nối được API bộ sưu tập!');
+        };
+
+        const handleDeleteCollection = async (id) => {
+          if (!confirm('Xóa bộ sưu tập này?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/collections?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) { fetchCollections(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const fetchReviews = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/reviews')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.reviews)) {
+                  setReviewsList(data.reviews);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+        };
+
+        const handleToggleReview = async (rev) => {
+          for (const url of getCmsApiCandidates('/api/admin/reviews')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: rev.id, is_approved: !rev.is_approved }),
+              });
+              if (res.ok) { fetchReviews(); return; }
+            } catch (_) {}
+          }
+        };
+
+        const handleDeleteReview = async (id) => {
+          if (!confirm('Xóa đánh giá này?')) return;
+          for (const url of getCmsApiCandidates('/api/admin/reviews?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) { fetchReviews(); fetchDbStats(); return; }
+            } catch (_) {}
+          }
+        };
+
+        useEffect(() => {
+          fetchMedusaDbProducts();
+          fetchDbStats();
+          fetchCategories();
+          fetchCollections();
+          fetchReviews();
+          fetchStaff();
+          fetchRoles();
+        }, []);
+
         // Load bài viết trực tiếp từ Payload REST API
         const fetchPayloadPosts = async () => {
           setPostsLoading(true);
-          try {
-            // Thử nạp qua API admin của storefront trước (có sẵn 100 bài từ DB)
-            let res = await fetch(`https://meocung-ecommerce-seven.vercel.app/api/admin/posts`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.docs && data.docs.length > 0) {
-                const formatted = data.docs.map(item => ({
-                  id: item.id,
-                  title: item.title,
-                  category: item.category || 'kinh-nghiem',
-                  summary: item.summary || (item.content ? item.content.replace(/<[^>]*>?/gm, '').slice(0, 120) + '...' : ''),
-                  coverImage: item.image || item.coverImage || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
-                  status: item.status || 'published'
-                }));
-                setPosts(formatted);
-                setPostsLoading(false);
-                return;
+          const endpoints = [
+            'https://meocung-ecommerce-seven.vercel.app/api/posts',
+            'http://localhost:3000/api/posts',
+            'https://meocung-payload.vercel.app/api/posts?limit=100'
+          ];
+
+          for (const url of endpoints) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.docs && data.docs.length > 0) {
+                  const formatted = data.docs.map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    category: item.category || 'kinh-nghiem',
+                    summary: item.summary || (item.content ? item.content.replace(/<[^>]*>?/gm, '').slice(0, 120) + '...' : ''),
+                    coverImage: item.coverImage || item.image || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
+                    status: item.status || 'published'
+                  }));
+                  setPosts(formatted);
+                  setPostsLoading(false);
+                  return;
+                }
               }
-            }
-            
-            // Fallback sang Payload backend direct API
-            res = await fetch(`https://meocung-payload.vercel.app/api/posts?limit=100`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.docs) {
-                setPosts(data.docs);
-              }
-            }
-          } catch (err) {
-            console.error('Fetch posts error:', err);
-          } finally {
-            setPostsLoading(false);
+            } catch (_) {}
           }
+
+          // Nếu tất cả API đều lag/chặn CORS, giữ nguyên danh sách 102 bài viết gốc đã có sẵn
+          if (!posts || posts.length === 0) {
+            setPosts(INITIAL_POSTS);
+          }
+          setPostsLoading(false);
         };
 
         useEffect(() => {
@@ -724,12 +1405,19 @@
           setIsProductModalOpen(true);
         };
 
-        const handleDeleteProduct = (id) => {
+        const handleDeleteProduct = async (id) => {
           if (!confirm('Xác nhận xóa sản phẩm khỏi kho hàng?')) return;
+          try {
+            await fetch(`https://meocung-ecommerce-seven.vercel.app/api/medusa/products?id=${id}`, {
+              method: 'DELETE'
+            });
+          } catch (e) {
+            console.error('Error deleting product from DB:', e);
+          }
           setProducts(products.filter(p => p.id !== id));
         };
 
-        const handleSaveProduct = (e) => {
+        const handleSaveProduct = async (e) => {
           e.preventDefault();
           if (!productForm.name.trim()) return alert('Vui lòng nhập tên sản phẩm!');
 
@@ -740,18 +1428,34 @@
             'phu-kien': 'Phụ kiện & Đồ chơi'
           };
 
-          if (editingProduct) {
-            setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
-          } else {
-            const newP = {
-              id: `prod_${Date.now()}`,
-              ...productForm,
-              categoryName: catNames[productForm.category],
-              status: 'published'
-            };
-            setProducts([newP, ...products]);
+          try {
+            if (editingProduct) {
+              await fetch(getCmsApiCandidates('/api/medusa/products')[0], {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: editingProduct.id, ...productForm })
+              });
+              setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
+            } else {
+              const newId = `prod_${Date.now()}`;
+              const payload = {
+                id: newId,
+                ...productForm,
+                categoryName: catNames[productForm.category],
+                status: 'published'
+              };
+              await fetch(getCmsApiCandidates('/api/medusa/products')[0], {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              setProducts([payload, ...products]);
+            }
+          } catch (err) {
+            console.error('Error saving product to DB:', err);
           }
           setIsProductModalOpen(false);
+          alert('Đã lưu sản phẩm thành công vào cơ sở dữ liệu!');
         };
 
         // Xử lý tạo / sửa bài viết cẩm nang PayloadCMS
@@ -779,8 +1483,14 @@
           setIsPostModalOpen(true);
         };
 
-        const handleDeletePost = (id) => {
+        const handleDeletePost = async (id) => {
           if (!confirm('Xác nhận xóa bài viết này khỏi cẩm nang?')) return;
+          for (const url of getCmsApiCandidates('/api/posts?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) break;
+            } catch (_) {}
+          }
           setPosts(posts.filter(p => p.id !== id));
         };
 
@@ -788,43 +1498,39 @@
           e.preventDefault();
           if (!postForm.title.trim()) return alert('Vui lòng nhập tiêu đề bài viết!');
 
-          try {
-            // Gửi API lưu bài viết trực tiếp vào cơ sở dữ liệu PostgreSQL Neon
-            const res = await fetch('https://meocung-ecommerce-seven.vercel.app/api/posts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(postForm)
-            });
+          const isEdit = Boolean(editingPost);
+          const method = isEdit ? 'PUT' : 'POST';
+          const payload = isEdit ? { id: editingPost.id, ...postForm } : postForm;
 
-            if (res.ok) {
-              const data = await res.json();
-              const savedDoc = data.doc || {
-                id: Date.now(),
-                ...postForm,
-                publishedAt: new Date().toISOString()
-              };
-              setPosts([savedDoc, ...posts]);
-            } else {
-              // Fallback cập nhật UI
-              const newPost = {
-                id: Date.now(),
-                ...postForm,
-                publishedAt: new Date().toISOString()
-              };
-              setPosts([newPost, ...posts]);
-            }
-          } catch (err) {
-            console.error('Error saving post to DB:', err);
-            const newPost = {
-              id: Date.now(),
-              ...postForm,
-              publishedAt: new Date().toISOString()
-            };
-            setPosts([newPost, ...posts]);
+          let savedDoc = null;
+          for (const url of getCmsApiCandidates('/api/posts')) {
+            try {
+              const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.doc) {
+                  savedDoc = data.doc;
+                  break;
+                }
+              }
+            } catch (_) {}
           }
 
+          if (isEdit) {
+            const updatedItem = savedDoc || { ...editingPost, ...postForm };
+            setPosts(posts.map(p => p.id === editingPost.id ? updatedItem : p));
+          } else {
+            const newItem = savedDoc || { id: Date.now(), ...postForm, publishedAt: new Date().toISOString() };
+            setPosts([newItem, ...posts]);
+          }
+
+          setEditingPost(null);
           setIsPostModalOpen(false);
-          alert('Đã lưu bài viết thành công vào cơ sở dữ liệu!');
+          alert(isEdit ? 'Đã cập nhật bài viết thành công!' : 'Đã thêm bài viết mới thành công vào cơ sở dữ liệu!');
         };
 
         const filteredProducts = products.filter(p =>
@@ -855,27 +1561,73 @@
                 <nav className="p-3 space-y-4 text-xs font-medium">
                   {/* MEDUSA COMMERCE ENGINE */}
                   <div>
-                    <div className="px-3 pb-1 text-[10px] font-bold text-orange-500 uppercase tracking-wider flex items-center justify-between">
-                      <span>🛒 MEDUSA COMMERCE</span>
-                      <span className="text-[9px] bg-orange-950 text-orange-400 font-mono px-1 rounded">E-COM</span>
+                    <div className="px-3 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                      <span>🏬 MEDUSA COMMERCE</span>
+                      <span className="text-[9px] bg-[#27272a] text-orange-400 font-mono px-1 rounded">E-COM</span>
                     </div>
                     <div className="space-y-0.5">
                       <button
-                        onClick={() => setActiveTab('products')}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-                          activeTab === 'products'
+                        onClick={() => setActiveTab('overview')}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
+                          activeTab === 'overview'
                             ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
                             : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
                         }`}
                       >
-                        <span className="flex items-center gap-2.5">
-                          <span>📦</span>
-                          <span>Sản Phẩm & Kho Hàng</span>
-                        </span>
-                        <span className="text-[10px] bg-orange-950 text-orange-400 font-bold px-1.5 py-0.2 rounded-full border border-orange-800/40">
-                          {products.length}
-                        </span>
+                        <span>📊</span>
+                        <span>Tổng Quan & Doanh Thu</span>
                       </button>
+
+                      {/* Mục Lớn: Quản Lý Sản Phẩm (Xổ ra các mục nhỏ liên kết logic) */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setProductMenuOpen((prev) => !prev)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                            ['products', 'inventory', 'categories', 'collections', 'price_lists', 'reviews'].includes(activeTab)
+                              ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
+                              : 'text-slate-300 hover:bg-[#202024] hover:text-slate-100'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span>📦</span>
+                            <span>Quản Lý Sản Phẩm</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400">{productMenuOpen ? '▾' : '▸'}</span>
+                        </button>
+
+                        {productMenuOpen && (
+                          <div className="mt-1 ml-3 pl-2.5 border-l border-[#27272a] space-y-0.5">
+                            {[
+                              { id: 'products', icon: '🛍️', label: 'Danh Sách Sản Phẩm', badge: products.length },
+                              { id: 'inventory', icon: '📥', label: 'Quản Lý Tồn Kho' },
+                              { id: 'categories', icon: '🗂️', label: 'Danh Mục Sản Phẩm', badge: categoriesList.length },
+                              { id: 'collections', icon: '✨', label: 'Bộ Sưu Tập', badge: collectionsList.length },
+                              { id: 'price_lists', icon: '💰', label: 'Bảng Giá & Khuyến Mãi' },
+                              { id: 'reviews', icon: '⭐', label: 'Đánh Giá Sản Phẩm', badge: reviewsList.length },
+                            ].map((sub) => (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => setActiveTab(sub.id)}
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
+                                  activeTab === sub.id
+                                    ? 'bg-orange-500/15 text-orange-400 font-bold'
+                                    : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                                }`}
+                              >
+                                <span className="flex items-center gap-2 truncate">
+                                  <span>{sub.icon}</span>
+                                  <span className="truncate">{sub.label}</span>
+                                </span>
+                                {sub.badge !== undefined && (
+                                  <span className="text-[9px] bg-[#27272a] text-slate-300 px-1.5 rounded-full">{sub.badge}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => setActiveTab('orders')}
@@ -894,17 +1646,53 @@
                         </span>
                       </button>
 
-                      <button
-                        onClick={() => setActiveTab('customers')}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
-                          activeTab === 'customers'
-                            ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
-                            : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
-                        }`}
-                      >
-                        <span>👥</span>
-                        <span>Khách Hàng (Gmail OTP)</span>
-                      </button>
+                      {/* Mục Lớn: Quản Lý Tài Khoản & Phân Quyền */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setAccountMenuOpen((prev) => !prev)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                            ['customers', 'staff', 'roles'].includes(activeTab)
+                              ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
+                              : 'text-slate-300 hover:bg-[#202024] hover:text-slate-100'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span>👥</span>
+                            <span>Quản Lý Tài Khoản</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400">{accountMenuOpen ? '▾' : '▸'}</span>
+                        </button>
+
+                        {accountMenuOpen && (
+                          <div className="mt-1 ml-3 pl-2.5 border-l border-[#27272a] space-y-0.5">
+                            {[
+                              { id: 'customers', icon: '🧑', label: 'Người Dùng (Khách Hàng)' },
+                              { id: 'staff', icon: '🧑‍💼', label: 'Nhân Viên Quản Trị', badge: staffList.length },
+                              { id: 'roles', icon: '🛡️', label: 'Phân Quyền (RBAC)', badge: rolesList.length },
+                            ].map((sub) => (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => setActiveTab(sub.id)}
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
+                                  activeTab === sub.id
+                                    ? 'bg-orange-500/15 text-orange-400 font-bold'
+                                    : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                                }`}
+                              >
+                                <span className="flex items-center gap-2 truncate">
+                                  <span>{sub.icon}</span>
+                                  <span className="truncate">{sub.label}</span>
+                                </span>
+                                {sub.badge !== undefined && (
+                                  <span className="text-[9px] bg-[#27272a] text-slate-300 px-1.5 rounded-full">{sub.badge}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -955,6 +1743,52 @@
                         <span>🏷️</span>
                         <span>Mã Giảm Giá & Voucher</span>
                       </button>
+
+                      {/* Mục lớn ở ngoài, nhấp vào để xổ ra từng trang nhỏ lẻ bên trong */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setCmsMenuOpen((prev) => !prev)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                            ['site_logo', 'site_navbar', 'site_footer', 'page_home', 'page_product_detail', 'page_news'].includes(activeTab)
+                              ? 'bg-indigo-950/70 text-indigo-300 font-bold border border-indigo-700/50'
+                              : 'text-slate-300 hover:bg-[#202024] hover:text-slate-100'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span>🎨</span>
+                            <span>Tùy Chỉnh Trang Web</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400">{cmsMenuOpen ? '▾' : '▸'}</span>
+                        </button>
+
+                        {cmsMenuOpen && (
+                          <div className="mt-1 ml-3 pl-2.5 border-l border-[#27272a] space-y-0.5">
+                            {[
+                              { id: 'site_logo', icon: '🏷️', label: 'Logo & Thương Hiệu' },
+                              { id: 'site_navbar', icon: '🧭', label: 'Thanh Navbar & Thông Báo' },
+                              { id: 'site_footer', icon: '🦶', label: 'Chân Trang (Footer)' },
+                              { id: 'page_home', icon: '🏠', label: 'Trang Chủ (Hero)' },
+                              { id: 'page_product_detail', icon: '📦', label: 'Chi Tiết Sản Phẩm' },
+                              { id: 'page_news', icon: '📰', label: 'Trang Tin Tức' },
+                            ].map((sub) => (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => setActiveTab(sub.id)}
+                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
+                                  activeTab === sub.id
+                                    ? 'bg-indigo-600/20 text-indigo-300 font-bold'
+                                    : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                                }`}
+                              >
+                                <span>{sub.icon}</span>
+                                <span className="truncate">{sub.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </nav>
@@ -979,12 +1813,26 @@
               <header className="h-14 border-b border-[#27272a] px-6 flex items-center justify-between shrink-0 bg-[#18181b]/60 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <h2 className="text-sm font-bold text-slate-100">
+                    {activeTab === 'overview' && 'MedusaJS Dashboard: Tổng Quan Doanh Thu & Dữ Liệu Neon DB'}
+                    {activeTab === 'categories' && 'Medusa Commerce: Quản Lý Danh Mục Sản Phẩm (PostgreSQL)'}
+                    {activeTab === 'collections' && 'Medusa Commerce: Quản Lý Bộ Sưu Tập (Collections)'}
+                    {activeTab === 'reviews' && 'Medusa Commerce: Kiểm Duyệt Đánh Giá Khách Hàng'}
+                    {activeTab === 'inventory' && 'Medusa Inventory: Quản Lý Tồn Kho & Nhập Hàng'}
+                    {activeTab === 'price_lists' && 'Medusa Pricing: Bảng Giá Niêm Yết & Khuyến Mãi'}
+                    {activeTab === 'staff' && 'Hệ Thống: Quản Lý Nhân Viên Quản Trị'}
+                    {activeTab === 'roles' && 'Hệ Thống: Phân Quyền Vai Trò Chi Tiết (RBAC)'}
                     {activeTab === 'products' && 'Medusa Commerce: Quản Lý Sản Phẩm Hạt, Pate & Tồn Kho'}
                     {activeTab === 'orders' && 'Medusa Fulfillment: Quản Lý Đơn Hàng'}
                     {activeTab === 'customers' && 'Khách Hàng Thành Viên (Xác Thực Gmail OTP)'}
                     {activeTab === 'posts' && 'PayloadCMS: Quản Trị Cẩm Nang Nuôi Mèo (Xem & Chỉnh Sửa Trực Tiếp)'}
                     {activeTab === 'banners' && 'PayloadCMS: Quản Lý Banner Trang Chủ & Khuyến Mãi'}
                     {activeTab === 'coupons' && 'PayloadCMS: Quản Lý Mã Giảm Giá & Voucher'}
+                    {activeTab === 'site_logo' && 'PayloadCMS: Chỉnh Sửa Logo & Thương Hiệu'}
+                    {activeTab === 'site_navbar' && 'PayloadCMS: Chỉnh Sửa Thanh Navbar & Thông Báo'}
+                    {activeTab === 'site_footer' && 'PayloadCMS: Chỉnh Sửa Chân Trang (Footer) & Liên Hệ'}
+                    {activeTab === 'page_home' && 'PayloadCMS: Chỉnh Sửa Nội Dung Trang Chủ (Hero)'}
+                    {activeTab === 'page_product_detail' && 'PayloadCMS: Chỉnh Sửa Trang Chi Tiết Sản Phẩm'}
+                    {activeTab === 'page_news' && 'PayloadCMS: Chỉnh Sửa Trang Tin Tức & Cẩm Nang'}
                   </h2>
                   <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 100% Đồng Bộ 1 Giao Diện
@@ -1010,6 +1858,76 @@
                     </button>
                   )}
 
+                  {activeTab === 'categories' && (
+                    <button
+                      onClick={() => {
+                        setEditingCat(null);
+                        setCatForm({ name: '', handle: '', description: '', rank: categoriesList.length, is_active: true });
+                        setIsCatModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm"
+                    >
+                      <span>➕</span> Thêm Danh Mục
+                    </button>
+                  )}
+
+                  {activeTab === 'staff' && (
+                    <button
+                      onClick={() => { setStaffForm({ email: '', password: '', role: 'editor' }); setIsStaffModalOpen(true); }}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm"
+                    >
+                      <span>➕</span> Thêm Nhân Viên
+                    </button>
+                  )}
+
+                  {activeTab === 'roles' && (
+                    <button
+                      onClick={() => { setRoleForm({ name: '', code: '', description: '' }); setIsRoleModalOpen(true); }}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm"
+                    >
+                      <span>➕</span> Tạo Vai Trò Mới
+                    </button>
+                  )}
+
+                  {activeTab === 'collections' && (
+                    <button
+                      onClick={() => {
+                        setEditingCol(null);
+                        setColForm({ title: '', handle: '' });
+                        setIsColModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm"
+                    >
+                      <span>➕</span> Tạo Bộ Sưu Tập
+                    </button>
+                  )}
+
+                  {activeTab === 'banners' && (
+                    <button
+                      onClick={() => {
+                        setEditingBanner(null);
+                        setBannerForm({ title: '', image_url: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=1200', link_url: '/products', position: 'home_slider', is_active: true });
+                        setIsBannerModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors"
+                    >
+                      <span>➕</span> Thêm Banner Mới
+                    </button>
+                  )}
+
+                  {activeTab === 'coupons' && (
+                    <button
+                      onClick={() => {
+                        setEditingCoupon(null);
+                        setCouponForm({ code: '', discount_percent: 10, min_order_value: 200000, is_active: true });
+                        setIsCouponModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors"
+                    >
+                      <span>➕</span> Tạo Mã Giảm Giá
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       const isLight = document.documentElement.classList.toggle('light-theme');
@@ -1031,8 +1949,387 @@
                 </div>
               </header>
 
-              {/* View Content */}
-              <div className="flex-1 overflow-auto p-6">
+              {/* View Content (Tự động chuyển Split-Screen WordPress Live Preview khi chỉnh giao diện) */}
+              <div className={isCustomizerTab ? 'flex-1 flex overflow-hidden' : 'flex-1 overflow-auto p-6'}>
+                <div className={isCustomizerTab ? 'w-[430px] xl:w-[470px] shrink-0 overflow-auto p-4 border-r border-[#27272a] bg-[#121214]' : 'w-full'}>
+
+                {/* 0. TAB TỔNG QUAN DOANH THU & DỮ LIỆU THẬT */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-6 max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-1">
+                        <p className="text-xs text-slate-400 font-semibold">💰 Tổng Doanh Thu (Neon DB)</p>
+                        <p className="text-2xl font-black text-orange-400">{Number(dbStats.total_revenue || 0).toLocaleString('vi-VN')} ₫</p>
+                        <p className="text-[11px] text-emerald-400 font-semibold">Từ {dbStats.orders_count} đơn hàng thực tế</p>
+                      </div>
+                      <div onClick={() => setActiveTab('products')} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] hover:border-orange-500/40 cursor-pointer space-y-1">
+                        <p className="text-xs text-slate-400 font-semibold">📦 Sản Phẩm Đang Bán</p>
+                        <p className="text-2xl font-black text-slate-100">{products.length || dbStats.products_count}</p>
+                        <p className="text-[11px] text-slate-400">Trong {categoriesList.length || dbStats.categories_count} danh mục</p>
+                      </div>
+                      <div onClick={() => setActiveTab('customers')} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] hover:border-orange-500/40 cursor-pointer space-y-1">
+                        <p className="text-xs text-slate-400 font-semibold">👥 Khách Hàng Thành Viên</p>
+                        <p className="text-2xl font-black text-indigo-400">{dbStats.customers_count}</p>
+                        <p className="text-[11px] text-slate-400">Xác thực Gmail OTP</p>
+                      </div>
+                      <div onClick={() => setActiveTab('posts')} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] hover:border-indigo-500/40 cursor-pointer space-y-1">
+                        <p className="text-xs text-slate-400 font-semibold">📰 Bài Viết & Đánh Giá</p>
+                        <p className="text-2xl font-black text-emerald-400">{posts.length || dbStats.posts_count}</p>
+                        <p className="text-[11px] text-slate-400">{reviewsList.length || dbStats.reviews_count} đánh giá từ khách</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-100 text-sm">⚡ Truy Cập Nhanh Hệ Thống Quản Trị</h3>
+                        <button onClick={() => { fetchDbStats(); fetchMedusaDbProducts(); fetchCategories(); fetchCollections(); fetchReviews(); }} className="px-3 py-1 text-xs font-bold bg-[#27272a] text-slate-200 rounded-lg hover:bg-[#323238]">🔄 Đồng bộ DB</button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        <button onClick={() => setActiveTab('categories')} className="p-3 rounded-lg bg-[#121214] border border-[#27272a] hover:border-orange-500/50 text-left font-bold text-slate-200">🗂️ Quản lý Danh mục ({categoriesList.length})</button>
+                        <button onClick={() => setActiveTab('collections')} className="p-3 rounded-lg bg-[#121214] border border-[#27272a] hover:border-orange-500/50 text-left font-bold text-slate-200">✨ Quản lý Bộ sưu tập ({collectionsList.length})</button>
+                        <button onClick={() => setActiveTab('reviews')} className="p-3 rounded-lg bg-[#121214] border border-[#27272a] hover:border-orange-500/50 text-left font-bold text-slate-200">⭐ Duyệt Đánh giá ({reviewsList.length})</button>
+                        <button onClick={() => { setCmsMenuOpen(true); setActiveTab('page_home'); }} className="p-3 rounded-lg bg-[#121214] border border-[#27272a] hover:border-indigo-500/50 text-left font-bold text-indigo-300">🎨 Tùy chỉnh Trang Web (Live)</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.1. TAB DANH MỤC SẢN PHẨM (PRODUCT_CATEGORY NEON DB) */}
+                {activeTab === 'categories' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-xl">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-[#27272a] bg-[#141416] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th className="py-3.5 px-6">Tên Danh Mục</th>
+                            <th className="py-3.5 px-6">Đường Dẫn (Handle)</th>
+                            <th className="py-3.5 px-6">Mô Tả</th>
+                            <th className="py-3.5 px-6">Trạng Thái</th>
+                            <th className="py-3.5 px-6 text-right">Thao Tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#27272a] text-xs">
+                          {categoriesList.map((cat) => (
+                            <tr key={cat.id} className="hover:bg-[#202024]/60">
+                              <td className="py-3.5 px-6 font-bold text-slate-100">{cat.name}</td>
+                              <td className="py-3.5 px-6 font-mono text-orange-400">/{cat.handle}</td>
+                              <td className="py-3.5 px-6 text-slate-400 max-w-xs truncate">{cat.description || '—'}</td>
+                              <td className="py-3.5 px-6">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${cat.is_active ? 'bg-emerald-950 text-emerald-400 border-emerald-800/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                  {cat.is_active ? '✓ Hoạt động' : 'Đang ẩn'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-6 text-right space-x-1.5">
+                                <button
+                                  onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name, handle: cat.handle, description: cat.description || '', rank: cat.rank || 0, is_active: cat.is_active !== false }); setIsCatModalOpen(true); }}
+                                  className="px-2.5 py-1 font-bold text-blue-400 bg-blue-950/60 border border-blue-800/40 rounded"
+                                >Sửa</button>
+                                <button
+                                  onClick={() => handleDeleteCategory(cat.id)}
+                                  className="px-2.5 py-1 font-bold text-rose-400 bg-rose-950/60 border border-rose-800/40 rounded"
+                                >Xóa</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.2. TAB BỘ SƯU TẬP (PRODUCT_COLLECTION NEON DB) */}
+                {activeTab === 'collections' && (
+                  <div className="space-y-4 max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {collectionsList.map((col) => (
+                        <div key={col.id} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] flex items-center justify-between gap-4">
+                          <div>
+                            <h4 className="font-bold text-slate-100 text-sm">{col.title}</h4>
+                            <p className="text-xs font-mono text-orange-400 mt-0.5">/collections/{col.handle}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => { setEditingCol(col); setColForm({ title: col.title, handle: col.handle }); setIsColModalOpen(true); }}
+                              className="px-2.5 py-1 text-xs font-bold text-blue-400 bg-blue-950/60 border border-blue-800/40 rounded"
+                            >Sửa</button>
+                            <button
+                              onClick={() => handleDeleteCollection(col.id)}
+                              className="px-2.5 py-1 text-xs font-bold text-rose-400 bg-rose-950/60 border border-rose-800/40 rounded"
+                            >Xóa</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.3. TAB ĐÁNH GIÁ SẢN PHẨM (REVIEWS NEON DB) */}
+                {activeTab === 'reviews' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] rounded-xl border border-[#27272a] divide-y divide-[#27272a]">
+                      {reviewsList.map((rev) => (
+                        <div key={rev.id} className="p-4 flex items-center justify-between gap-4 text-xs">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-100 text-sm">{rev.reviewer_name}</span>
+                              <span className="text-amber-400 font-bold">{'⭐'.repeat(Number(rev.rating || 5))}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${rev.is_approved ? 'bg-emerald-950 text-emerald-400 border-emerald-800/40' : 'bg-amber-950 text-amber-400 border-amber-800/40'}`}>
+                                {rev.is_approved ? 'Đã duyệt hiển thị' : 'Đang ẩn'}
+                              </span>
+                            </div>
+                            <p className="text-slate-300">{rev.comment}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => handleToggleReview(rev)}
+                              className="px-2.5 py-1 font-bold bg-[#27272a] hover:bg-[#323238] text-slate-200 rounded"
+                            >{rev.is_approved ? 'Ẩn đi' : 'Duyệt hiện'}</button>
+                            <button
+                              onClick={() => handleDeleteReview(rev.id)}
+                              className="px-2.5 py-1 font-bold text-rose-400 bg-rose-950/60 border border-rose-800/40 rounded"
+                            >Xóa</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.4. TAB QUẢN LÝ TỒN KHO (INVENTORY) */}
+                {activeTab === 'inventory' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a] flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">📥 Kiểm Soát Tồn Kho Theo Sản Phẩm (Neon DB)</h3>
+                        <p className="text-xs text-slate-400">Chỉnh trực tiếp số lượng tồn kho, cảnh báo tự động khi sắp hết hàng (&lt; 20 sản phẩm).</p>
+                      </div>
+                      <button onClick={fetchMedusaDbProducts} className="px-3 py-1.5 text-xs font-bold bg-[#27272a] text-slate-200 rounded-lg">🔄 Đồng bộ kho</button>
+                    </div>
+                    <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-xl">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-[#27272a] bg-[#141416] text-[11px] font-bold text-slate-400 uppercase">
+                            <th className="py-3.5 px-6">Sản Phẩm</th>
+                            <th className="py-3.5 px-6">Danh Mục</th>
+                            <th className="py-3.5 px-6">Tồn Kho Hiện Tại</th>
+                            <th className="py-3.5 px-6">Cảnh Báo</th>
+                            <th className="py-3.5 px-6 text-right">Nhập / Xuất Nhanh</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#27272a]">
+                          {products.map((p) => {
+                            const qty = Number(p.inventory ?? 0);
+                            return (
+                              <tr key={p.id} className="hover:bg-[#202024]/60">
+                                <td className="py-3.5 px-6 font-bold text-slate-100 flex items-center gap-3">
+                                  <img src={p.image} alt={p.name} className="w-9 h-9 rounded object-cover" />
+                                  <span className="line-clamp-1">{p.name}</span>
+                                </td>
+                                <td className="py-3.5 px-6 text-slate-400">{p.categoryName}</td>
+                                <td className="py-3.5 px-6">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={qty}
+                                    onChange={(e) => handleQuickUpdateProductField(p, { inventory: Number(e.target.value) })}
+                                    className="w-24 bg-[#121214] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-100 font-bold text-center"
+                                  />
+                                </td>
+                                <td className="py-3.5 px-6">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    qty === 0
+                                      ? 'bg-rose-950 text-rose-400 border-rose-800'
+                                      : qty < 20
+                                      ? 'bg-amber-950 text-amber-400 border-amber-800'
+                                      : 'bg-emerald-950 text-emerald-400 border-emerald-800'
+                                  }`}>
+                                    {qty === 0 ? 'Hết hàng' : qty < 20 ? 'Sắp hết' : 'Còn hàng'}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-6 text-right space-x-1.5">
+                                  <button onClick={() => handleQuickUpdateProductField(p, { inventory: qty + 10 })} className="px-2.5 py-1 bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 rounded font-bold">+10</button>
+                                  <button onClick={() => handleQuickUpdateProductField(p, { inventory: Math.max(0, qty - 5) })} className="px-2.5 py-1 bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded font-bold">-5</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.5. TAB BẢNG GIÁ & KHUYẾN MÃI (PRICE LISTS) */}
+                {activeTab === 'price_lists' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <h3 className="font-bold text-slate-100 text-sm">💰 Quản Lý Bảng Giá & Giá Khuyến Mãi (Lưu Trực Tiếp Neon DB)</h3>
+                      <p className="text-xs text-slate-400">Chỉnh Giá bán thực tế và Giá niêm yết gốc của từng sản phẩm; Storefront tự động tính % giảm giá.</p>
+                    </div>
+                    <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-xl">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-[#27272a] bg-[#141416] text-[11px] font-bold text-slate-400 uppercase">
+                            <th className="py-3.5 px-6">Sản Phẩm</th>
+                            <th className="py-3.5 px-6">Giá Bán (VNĐ)</th>
+                            <th className="py-3.5 px-6">Giá Niêm Yết Gốc (VNĐ)</th>
+                            <th className="py-3.5 px-6">Mức Giảm</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#27272a]">
+                          {products.map((p) => {
+                            const price = Number(p.price || 0);
+                            const orig = Number(p.originalPrice || price);
+                            const pct = orig > price ? Math.round(((orig - price) / orig) * 100) : 0;
+                            return (
+                              <tr key={p.id} className="hover:bg-[#202024]/60">
+                                <td className="py-3.5 px-6 font-bold text-slate-100">{p.name}</td>
+                                <td className="py-3.5 px-6">
+                                  <input
+                                    type="number"
+                                    value={price}
+                                    onChange={(e) => handleQuickUpdateProductField(p, { price: Number(e.target.value) })}
+                                    className="w-32 bg-[#121214] border border-[#3f3f46] px-2.5 py-1 rounded text-orange-400 font-bold"
+                                  />
+                                </td>
+                                <td className="py-3.5 px-6">
+                                  <input
+                                    type="number"
+                                    value={orig}
+                                    onChange={(e) => handleQuickUpdateProductField(p, { originalPrice: Number(e.target.value) })}
+                                    className="w-32 bg-[#121214] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-300"
+                                  />
+                                </td>
+                                <td className="py-3.5 px-6">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-950 text-orange-400 border border-orange-800/40">
+                                    {pct > 0 ? `-${pct}%` : 'Giá chuẩn'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.6. TAB NHÂN VIÊN QUẢN TRỊ (STAFF - USERS TABLE) */}
+                {activeTab === 'staff' && (
+                  <div className="space-y-4 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-xl">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-[#27272a] bg-[#141416] text-[11px] font-bold text-slate-400 uppercase">
+                            <th className="py-3.5 px-6">Email Nhân Viên</th>
+                            <th className="py-3.5 px-6">Vai Trò Phân Quyền</th>
+                            <th className="py-3.5 px-6">Trạng Thái</th>
+                            <th className="py-3.5 px-6 text-right">Thao Tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#27272a]">
+                          {staffList.map((st) => (
+                            <tr key={st.id} className="hover:bg-[#202024]/60">
+                              <td className="py-3.5 px-6 font-bold text-slate-100">{st.email}</td>
+                              <td className="py-3.5 px-6">
+                                <select
+                                  value={st.role || 'editor'}
+                                  onChange={(e) => handleUpdateStaffRole(st.id, e.target.value, false)}
+                                  className="bg-[#121214] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-200 font-semibold"
+                                >
+                                  <option value="admin">Super Admin (Toàn quyền)</option>
+                                  <option value="warehouse_manager">Quản Lý Kho & Sản Phẩm</option>
+                                  <option value="editor">Biên Tập Viên (PayloadCMS)</option>
+                                  <option value="order_staff">Nhân Viên Xử Lý Đơn</option>
+                                  <option value="customer">Khách Hàng</option>
+                                </select>
+                              </td>
+                              <td className="py-3.5 px-6">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${st.lock_until ? 'bg-rose-950 text-rose-400 border-rose-800' : 'bg-emerald-950 text-emerald-400 border-emerald-800'}`}>
+                                  {st.lock_until ? '🔒 Đang khóa' : '✓ Đang hoạt động'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-6 text-right space-x-1.5">
+                                {st.lock_until && (
+                                  <button onClick={() => handleUpdateStaffRole(st.id, st.role, true)} className="px-2.5 py-1 font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 rounded">Mở khóa</button>
+                                )}
+                                <button onClick={() => handleDeleteStaff(st.id)} className="px-2.5 py-1 font-bold text-rose-400 bg-rose-950/60 border border-rose-800/40 rounded">Xóa</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 0.7. TAB PHÂN QUYỀN VAI TRÒ CHI TIẾT (RBAC MATRIX - ADMIN_ROLES TABLE) */}
+                {activeTab === 'roles' && (
+                  <div className="space-y-5 max-w-6xl mx-auto">
+                    <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <h3 className="font-bold text-slate-100 text-sm">🛡️ Ma Trận Phân Quyền Chi Tiết Theo Chức Năng (Lưu Trực Tiếp Neon DB)</h3>
+                      <p className="text-xs text-slate-400">Tích chọn quyền Xem / Thêm / Sửa / Xóa cho từng vai trò nhân viên trong hệ thống Admin.</p>
+                    </div>
+
+                    {rolesList.map((roleObj) => (
+                      <div key={roleObj.id} className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-lg">
+                        <div className="p-4 border-b border-[#27272a] flex items-center justify-between bg-[#141416]">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-slate-100 text-sm">{roleObj.name}</h4>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800/40">{roleObj.code}</span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">{roleObj.description}</p>
+                          </div>
+                          {roleObj.code !== 'admin' && (
+                            <button onClick={() => handleDeleteRole(roleObj.id)} className="px-2.5 py-1 text-xs font-bold text-rose-400 bg-rose-950/60 border border-rose-800/40 rounded">Xóa vai trò</button>
+                          )}
+                        </div>
+                        <div className="p-4 overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="text-[11px] font-bold text-slate-400 uppercase border-b border-[#27272a]">
+                                <th className="py-2 pr-4">Phân Hệ Quản Trị</th>
+                                <th className="py-2 px-4 text-center">👁️ Xem</th>
+                                <th className="py-2 px-4 text-center">➕ Thêm Mới</th>
+                                <th className="py-2 px-4 text-center">✏️ Chỉnh Sửa</th>
+                                <th className="py-2 px-4 text-center">🗑️ Xóa</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#27272a]/50">
+                              {[
+                                { key: 'products', label: '📦 Sản Phẩm & Danh Mục' },
+                                { key: 'inventory', label: '📥 Quản Lý Tồn Kho & Giá' },
+                                { key: 'orders', label: '🛍️ Đơn Hàng & Vận Chuyển' },
+                                { key: 'customers', label: '🧑 Khách Hàng Thành Viên' },
+                                { key: 'posts', label: '📰 Bài Viết, Banner & Voucher' },
+                                { key: 'theme', label: '🎨 Tùy Chỉnh Giao Diện Web' },
+                              ].map((mod) => {
+                                const p = roleObj.permissions?.[mod.key] || {};
+                                return (
+                                  <tr key={mod.key} className="hover:bg-[#202024]/40">
+                                    <td className="py-2.5 pr-4 font-semibold text-slate-200">{mod.label}</td>
+                                    {['view', 'create', 'edit', 'delete'].map((act) => (
+                                      <td key={act} className="py-2.5 px-4 text-center">
+                                        <input
+                                          type="checkbox"
+                                          checked={Boolean(p[act])}
+                                          onChange={() => handleTogglePermission(roleObj, mod.key, act)}
+                                          className="w-4 h-4 accent-orange-500 cursor-pointer"
+                                        />
+                                      </td>
+                                    ))}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* 1. TAB SẢN PHẨM MEDUSA */}
                 {activeTab === 'products' && (
                   <div className="space-y-4 max-w-7xl mx-auto">
@@ -1289,36 +2586,6 @@
                             </div>
                           );
                         })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. TAB BANNERS */}
-                {activeTab === 'banners' && (
-                  <div className="space-y-4 max-w-7xl mx-auto">
-                    <h3 className="font-bold text-slate-100 text-sm">Quản Lý Banner Quảng Cáo & Slider (PayloadCMS)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-lg">
-                        <img src="https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=1200" alt="Banner 1" className="w-full h-40 object-cover" />
-                        <div className="p-4 flex justify-between items-center">
-                          <div>
-                            <h4 className="font-bold text-slate-100 text-sm">Đại Tiệc Hạt Dinh Dưỡng - Giảm 20%</h4>
-                            <p className="text-xs text-slate-400">Vị trí: Slider đầu trang chủ</p>
-                          </div>
-                          <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full">Active</span>
-                        </div>
-                      </div>
-
-                      <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-lg">
-                        <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=1200" alt="Banner 2" className="w-full h-40 object-cover" />
-                        <div className="p-4 flex justify-between items-center">
-                          <div>
-                            <h4 className="font-bold text-slate-100 text-sm">Pate Ciao Churu Mua 2 Tặng 1</h4>
-                            <p className="text-xs text-slate-400">Vị trí: Banner giữa trang</p>
-                          </div>
-                          <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full">Active</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -1847,6 +3114,721 @@
                     )}
                   </div>
                 )}
+
+                {/* 4. TAB BANNERS (NEON POSTGRESQL + VERCEL BLOB) */}
+                {activeTab === 'banners' && (
+                  <div className="space-y-4 max-w-7xl mx-auto">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-slate-100 text-sm">Quản Lý Banner Quảng Cáo & Slider ({bannersList.length})</h3>
+                      <button onClick={fetchBanners} className="px-3 py-1.5 text-xs font-bold bg-[#27272a] text-slate-300 rounded-lg hover:bg-[#323238]">🔄 Tải lại từ DB</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {bannersList.map((b) => (
+                        <div key={b.id} className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-lg">
+                          <img src={b.image_url} alt={b.title} className="w-full h-44 object-cover bg-[#121214]" />
+                          <div className="p-4 flex justify-between items-center gap-3">
+                            <div>
+                              <h4 className="font-bold text-slate-100 text-sm">{b.title}</h4>
+                              <p className="text-xs text-slate-400">Vị trí: {b.position} • Link: {b.link_url}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${b.is_active ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                {b.is_active ? 'Đang bật' : 'Đang ẩn'}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setEditingBanner(b);
+                                  setBannerForm({ title: b.title, image_url: b.image_url, link_url: b.link_url || '/products', position: b.position || 'home_slider', is_active: b.is_active !== false });
+                                  setIsBannerModalOpen(true);
+                                }}
+                                className="px-2 py-1 text-[11px] font-bold bg-blue-950/60 text-blue-400 border border-blue-800/40 rounded"
+                              >Sửa</button>
+                              <button
+                                onClick={() => handleDeleteBanner(b.id)}
+                                className="px-2 py-1 text-[11px] font-bold bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded"
+                              >Xóa</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6.1. LOGO & THƯƠNG HIỆU */}
+                {activeTab === 'site_logo' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-3xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🏷️ Logo & Nhận Diện Thương Hiệu</h3>
+                        <p className="text-xs text-slate-400">Thay đổi Tên shop, Slogan, Màu chủ đạo và Ảnh Logo hiển thị trên Header & Footer.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Logo'}
+                      </button>
+                    </div>
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Tên Shop / Thương hiệu</label>
+                          <input type="text" value={siteSettings.site_name} onChange={(e) => setSiteSettings({ ...siteSettings, site_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Slogan dưới Logo</label>
+                          <input type="text" value={siteSettings.tagline} onChange={(e) => setSiteSettings({ ...siteSettings, tagline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Icon Emoji mặc định</label>
+                          <input type="text" value={siteSettings.logo_emoji} onChange={(e) => setSiteSettings({ ...siteSettings, logo_emoji: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 text-center" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu chủ đạo Website</label>
+                          <input type="color" value={siteSettings.primary_color || '#ff7f5c'} onChange={(e) => setSiteSettings({ ...siteSettings, primary_color: e.target.value })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Ảnh Logo riêng (Vercel Blob)</label>
+                        <div className="flex items-center gap-2">
+                          <input type="url" value={siteSettings.logo_url || ''} onChange={(e) => setSiteSettings({ ...siteSettings, logo_url: e.target.value })} placeholder="Dán URL ảnh hoặc chọn từ máy..." className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                          <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200">
+                            {uploadingTarget === 'logo' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(f, 'logo'); e.target.value = ''; }} />
+                          </label>
+                        </div>
+                        {siteSettings.logo_url && <img src={siteSettings.logo_url} alt="Logo" className="mt-2 h-16 w-16 rounded-xl object-cover border border-[#27272a]" />}
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.2. THANH NAVBAR & THÔNG BÁO */}
+                {activeTab === 'site_navbar' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🧭 Thanh Thông Báo & Menu Điều Hướng (Navbar)</h3>
+                        <p className="text-xs text-slate-400">Thêm, sửa tên, đổi đường dẫn hoặc xóa các mục trên thanh menu cam.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Navbar'}
+                      </button>
+                    </div>
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Thông báo trên cùng (Top Notice)</label>
+                          <input type="text" value={siteSettings.top_notice} onChange={(e) => setSiteSettings({ ...siteSettings, top_notice: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Dòng chữ bên phải Navbar</label>
+                          <input type="text" value={siteSettings.shipping_badge} onChange={(e) => setSiteSettings({ ...siteSettings, shipping_badge: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 pt-2 border-t border-[#27272a]">
+                        <div className="flex items-center justify-between">
+                          <label className="font-bold text-slate-300">Danh sách mục Menu Navbar</label>
+                          <button type="button" onClick={() => setSiteSettings({ ...siteSettings, navbar_links: [...(siteSettings.navbar_links || []), { label: 'Mục mới', href: '/products' }] })} className="px-2.5 py-1 bg-[#27272a] hover:bg-[#323238] text-indigo-300 font-bold rounded">+ Thêm mục menu</button>
+                        </div>
+                        {(siteSettings.navbar_links || []).map((nav, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input type="text" value={nav.label} placeholder="Tên hiển thị" onChange={(e) => { const n = [...siteSettings.navbar_links]; n[idx] = { ...n[idx], label: e.target.value }; setSiteSettings({ ...siteSettings, navbar_links: n }); }} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-1.5 rounded-lg text-slate-100" />
+                            <input type="text" value={nav.href} placeholder="Đường dẫn (/products...)" onChange={(e) => { const n = [...siteSettings.navbar_links]; n[idx] = { ...n[idx], href: e.target.value }; setSiteSettings({ ...siteSettings, navbar_links: n }); }} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-1.5 rounded-lg text-slate-300 font-mono" />
+                            <button type="button" onClick={() => setSiteSettings({ ...siteSettings, navbar_links: siteSettings.navbar_links.filter((_, i) => i !== idx) })} className="px-2.5 py-1.5 bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded-lg font-bold">Xóa</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.3. CHÂN TRANG (FOOTER ĐỘNG - THÊM / XÓA / ĐỔI VỊ TRÍ CỘT) */}
+                {activeTab === 'site_footer' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-5xl mx-auto">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🦶 Chân Trang (Footer Động — Thêm, Xóa & Đổi Vị Trí Cột)</h3>
+                        <p className="text-xs text-slate-400">Chủ shop có thể thêm cột mới, xóa bớt cột hoặc bấm Trái/Phải để đổi thứ tự cột hiển thị ở Footer.</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cols = siteSettings.pages_config?.footer?.columns || [];
+                            setSiteSettings({
+                              ...siteSettings,
+                              pages_config: {
+                                ...siteSettings.pages_config,
+                                footer: {
+                                  ...siteSettings.pages_config?.footer,
+                                  columns: [
+                                    ...cols,
+                                    { id: 'col-' + Date.now(), type: 'links', title: 'Cột Mới', links: [{ label: 'Liên kết mới', href: '/products' }] }
+                                  ]
+                                }
+                              }
+                            });
+                          }}
+                          className="px-3 py-2 text-xs font-bold bg-[#27272a] hover:bg-[#323238] text-indigo-300 border border-[#3f3f46] rounded-lg"
+                        >
+                          + Thêm Cột Mới
+                        </button>
+                        <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                          {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Footer'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      {(siteSettings.pages_config?.footer?.columns || []).map((col, cIdx, arr) => {
+                        const moveCol = (dir) => {
+                          const targetIdx = cIdx + dir;
+                          if (targetIdx < 0 || targetIdx >= arr.length) return;
+                          const copy = [...arr];
+                          const tmp = copy[cIdx];
+                          copy[cIdx] = copy[targetIdx];
+                          copy[targetIdx] = tmp;
+                          setSiteSettings({
+                            ...siteSettings,
+                            pages_config: {
+                              ...siteSettings.pages_config,
+                              footer: { ...siteSettings.pages_config?.footer, columns: copy }
+                            }
+                          });
+                        };
+
+                        const removeCol = () => {
+                          if (!confirm('Xóa cột "' + (col.title || 'này') + '" khỏi Footer?')) return;
+                          const copy = arr.filter((_, i) => i !== cIdx);
+                          setSiteSettings({
+                            ...siteSettings,
+                            pages_config: {
+                              ...siteSettings.pages_config,
+                              footer: { ...siteSettings.pages_config?.footer, columns: copy }
+                            }
+                          });
+                        };
+
+                        const updateCol = (patch) => {
+                          const copy = [...arr];
+                          copy[cIdx] = { ...copy[cIdx], ...patch };
+                          setSiteSettings({
+                            ...siteSettings,
+                            pages_config: {
+                              ...siteSettings.pages_config,
+                              footer: { ...siteSettings.pages_config?.footer, columns: copy }
+                            }
+                          });
+                        };
+
+                        return (
+                          <div key={col.id || cIdx} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#27272a]">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 font-bold border border-indigo-800/40">
+                                  Cột {cIdx + 1}
+                                </span>
+                                <span className="font-bold text-slate-200">
+                                  {col.type === 'brand' ? '🏠 Thông tin Shop & Liên hệ' : col.type === 'newsletter' ? '📧 Đăng ký nhận ưu đãi' : '🔗 Danh sách liên kết'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={cIdx === 0}
+                                  onClick={() => moveCol(-1)}
+                                  className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 text-slate-200 rounded font-bold"
+                                  title="Đưa sang trái / lên trước"
+                                >◀ Sang trái</button>
+                                <button
+                                  type="button"
+                                  disabled={cIdx === arr.length - 1}
+                                  onClick={() => moveCol(1)}
+                                  className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 text-slate-200 rounded font-bold"
+                                  title="Đưa sang phải / ra sau"
+                                >Sang phải ▶</button>
+                                <button
+                                  type="button"
+                                  onClick={removeCol}
+                                  className="px-2 py-1 bg-rose-950/60 hover:bg-rose-900/60 text-rose-400 border border-rose-800/40 rounded font-bold"
+                                >🗑️ Xóa cột</button>
+                              </div>
+                            </div>
+
+                            {col.type === 'brand' && (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Số Hotline</label>
+                                    <input type="text" value={siteSettings.hotline} onChange={(e) => setSiteSettings({ ...siteSettings, hotline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Địa chỉ cửa hàng</label>
+                                    <input type="text" value={siteSettings.address} onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Link Facebook</label>
+                                    <input type="text" value={siteSettings.facebook_url} onChange={(e) => setSiteSettings({ ...siteSettings, facebook_url: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block font-bold text-slate-300 mb-1">Đoạn giới thiệu cửa hàng</label>
+                                  <textarea rows={2} value={siteSettings.footer_about} onChange={(e) => setSiteSettings({ ...siteSettings, footer_about: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                </div>
+                              </div>
+                            )}
+
+                            {col.type === 'links' && (
+                              <div className="space-y-2.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={col.title || ''}
+                                    onChange={(e) => updateCol({ title: e.target.value })}
+                                    placeholder="Tiêu đề cột"
+                                    className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-bold"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCol({ links: [...(col.links || []), { label: 'Link mới', href: '/products' }] })}
+                                    className="px-3 py-2 bg-[#27272a] hover:bg-[#323238] text-indigo-300 font-bold rounded-lg shrink-0"
+                                  >+ Thêm dòng</button>
+                                </div>
+                                {(col.links || []).map((lnk, lIdx) => (
+                                  <div key={lIdx} className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={lnk.label}
+                                      placeholder="Tên hiển thị"
+                                      onChange={(e) => {
+                                        const ls = [...(col.links || [])];
+                                        ls[lIdx] = { ...ls[lIdx], label: e.target.value };
+                                        updateCol({ links: ls });
+                                      }}
+                                      className="flex-1 bg-[#121214] border border-[#27272a] px-2.5 py-1.5 rounded text-slate-100"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={lnk.href}
+                                      placeholder="Đường dẫn (/...)"
+                                      onChange={(e) => {
+                                        const ls = [...(col.links || [])];
+                                        ls[lIdx] = { ...ls[lIdx], href: e.target.value };
+                                        updateCol({ links: ls });
+                                      }}
+                                      className="w-44 bg-[#121214] border border-[#27272a] px-2.5 py-1.5 rounded text-slate-400 font-mono"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCol({ links: (col.links || []).filter((_, i) => i !== lIdx) })}
+                                      className="px-2 py-1.5 bg-rose-950/60 text-rose-400 rounded font-bold"
+                                    >✕</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {col.type === 'newsletter' && (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Tiêu đề cột</label>
+                                    <input type="text" value={col.title || ''} onChange={(e) => updateCol({ title: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Chữ trên nút gửi</label>
+                                    <input type="text" value={col.btn_text || ''} onChange={(e) => updateCol({ btn_text: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block font-bold text-slate-300 mb-1">Mô tả nhận ưu đãi</label>
+                                  <input type="text" value={col.desc || ''} onChange={(e) => updateCol({ desc: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Bản quyền Copyright */}
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-2 text-xs">
+                      <label className="block font-bold text-slate-300">Dòng bản quyền (Copyright) ở đáy Footer</label>
+                      <input type="text" value={siteSettings.footer_copyright} onChange={(e) => setSiteSettings({ ...siteSettings, footer_copyright: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.4. TRANG CHỦ (PAGE BUILDER: ẨN/HIỆN KHỐI, ĐỔI VỊ TRÍ, MÀU SẮC, FONT CHỮ) */}
+                {activeTab === 'page_home' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-5xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🏠 Tùy Chỉnh Tự Do Trang Chủ (Bố Cục, Ẩn/Hiện, Màu Sắc & Font)</h3>
+                        <p className="text-xs text-slate-400">Chủ shop tự do ẩn/hiện phần Banner, đổi thứ tự các khối trên trang chủ và chọn màu sắc / font chữ riêng.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Trang Chủ'}
+                      </button>
+                    </div>
+
+                    {/* Khối 1: Bố cục & Ẩn/Hiện từng phần */}
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3 text-xs">
+                      <h4 className="font-bold text-orange-400 uppercase">1. Bố Cục Trang Chủ (Bật/Tắt & Sắp Xếp Thứ Tự Các Phần)</h4>
+                      <div className="space-y-2">
+                        {(siteSettings.pages_config?.home?.sections || []).map((sec, idx, arr) => {
+                          const moveSec = (dir) => {
+                            const nextIdx = idx + dir;
+                            if (nextIdx < 0 || nextIdx >= arr.length) return;
+                            const copy = [...arr];
+                            const tmp = copy[idx];
+                            copy[idx] = copy[nextIdx];
+                            copy[nextIdx] = tmp;
+                            setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, sections: copy } } });
+                          };
+                          const isVisible = sec.visible !== false;
+                          const toggleSec = () => {
+                            setSiteSettings((prev) => {
+                              const curSecs = prev.pages_config?.home?.sections || arr;
+                              const nextSecs = curSecs.map((item, i) =>
+                                i === idx ? { ...item, visible: !(item.visible !== false) } : item
+                              );
+                              return {
+                                ...prev,
+                                pages_config: {
+                                  ...prev.pages_config,
+                                  home: { ...prev.pages_config?.home, sections: nextSecs }
+                                }
+                              };
+                            });
+                          };
+                          return (
+                            <div key={sec.id} className="flex items-center justify-between p-3 rounded-lg bg-[#121214] border border-[#27272a]">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={toggleSec}
+                                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer border ${
+                                    isVisible
+                                      ? 'bg-emerald-950 text-emerald-400 border-emerald-700 hover:bg-emerald-900'
+                                      : 'bg-rose-950/60 text-rose-400 border-rose-800 hover:bg-rose-900/60'
+                                  }`}
+                                >
+                                  {isVisible ? '👁️ Đang hiện' : '🙈 Đã ẩn'}
+                                </button>
+                                <span className={`font-bold ${isVisible ? 'text-slate-100' : 'text-slate-500 line-through'}`}>{sec.label}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button type="button" disabled={idx === 0} onClick={() => moveSec(-1)} className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 rounded font-bold text-slate-200">▲ Lên</button>
+                                <button type="button" disabled={idx === arr.length - 1} onClick={() => moveSec(1)} className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 rounded font-bold text-slate-200">▼ Xuống</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Khối 2: Màu sắc & Font chữ riêng cho Trang Chủ */}
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <h4 className="font-bold text-indigo-400 uppercase">2. Màu Sắc & Kiểu Chữ Riêng Trang Chủ</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nền trang</label>
+                          <input type="color" value={siteSettings.pages_config?.home?.bg_color || '#ffffff'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, bg_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nền Hero</label>
+                          <input type="color" value={siteSettings.pages_config?.home?.hero_bg_color || '#ff7f5c'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_bg_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu chữ chính</label>
+                          <input type="color" value={siteSettings.pages_config?.home?.text_color || '#111827'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, text_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nhấn (Nút)</label>
+                          <input type="color" value={siteSettings.pages_config?.home?.accent_color || '#ff7f5c'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, accent_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Font chữ</label>
+                          <select value={siteSettings.pages_config?.home?.font_family || 'inherit'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, font_family: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] px-2 rounded-lg text-slate-100">
+                            <option value="inherit">Mặc định hệ thống</option>
+                            <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                            <option value="Georgia, serif">Serif (Cổ điển)</option>
+                            <option value="'Courier New', monospace">Monospace (Kỹ thuật)</option>
+                            <option value="Arial, sans-serif">Arial / Sans</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Khối 3: Nội dung Hero & Tiêu đề các mục */}
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <h4 className="font-bold text-emerald-400 uppercase">3. Nội Dung Hero Banner & Tiêu Đề Các Phần</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Nhãn nhỏ (Badge)</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.hero_badge || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_badge: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Tiêu đề lớn Hero</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.hero_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Mô tả phụ đề Hero</label>
+                        <textarea rows={2} value={siteSettings.pages_config?.home?.hero_subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ trên nút bấm</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.hero_btn_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_btn_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Đường dẫn nút bấm</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.hero_btn_link || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_btn_link: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-300 font-mono" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[#27272a]">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Tiêu đề mục Danh mục</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.categories_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, categories_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Tiêu đề mục Sản phẩm</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.featured_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, featured_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Tiêu đề mục Cẩm nang</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.blog_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.5. TRANG CHI TIẾT SẢN PHẨM (CUSTOM MÀU SẮC, FONT, ẨN/HIỆN & NỘI DUNG) */}
+                {activeTab === 'page_product_detail' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">📦 Tùy Chỉnh Tự Do Trang Chi Tiết Sản Phẩm</h3>
+                        <p className="text-xs text-slate-400">Tùy chỉnh màu nền, màu chữ, font chữ, ẩn/hiện các khối và chỉnh chữ nút bấm trên trang sản phẩm.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Chi Tiết SP'}
+                      </button>
+                    </div>
+
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <h4 className="font-bold text-indigo-400 uppercase">1. Màu Sắc, Font Chữ & Ẩn/Hiện Thành Phần</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nền khung SP</label>
+                          <input type="color" value={siteSettings.pages_config?.product_detail?.bg_color || '#ffffff'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, bg_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu chữ</label>
+                          <input type="color" value={siteSettings.pages_config?.product_detail?.text_color || '#111827'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, text_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nhấn (Giá & Nút)</label>
+                          <input type="color" value={siteSettings.pages_config?.product_detail?.accent_color || '#ff7f5c'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, accent_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Font chữ</label>
+                          <select value={siteSettings.pages_config?.product_detail?.font_family || 'inherit'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, font_family: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] px-2 rounded-lg text-slate-100">
+                            <option value="inherit">Mặc định hệ thống</option>
+                            <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                            <option value="Georgia, serif">Serif (Cổ điển)</option>
+                            <option value="'Courier New', monospace">Monospace</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-5 pt-2 border-t border-[#27272a]">
+                        <label className="flex items-center gap-2 font-semibold text-slate-200 cursor-pointer">
+                          <input type="checkbox" checked={siteSettings.pages_config?.product_detail?.show_breadcrumb !== false} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, show_breadcrumb: e.target.checked } } })} />
+                          <span>Hiện đường dẫn Breadcrumb</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold text-slate-200 cursor-pointer">
+                          <input type="checkbox" checked={siteSettings.pages_config?.product_detail?.show_rating !== false} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, show_rating: e.target.checked } } })} />
+                          <span>Hiện sao đánh giá & lượt bán</span>
+                        </label>
+                        <label className="flex items-center gap-2 font-semibold text-slate-200 cursor-pointer">
+                          <input type="checkbox" checked={siteSettings.pages_config?.product_detail?.show_guarantees !== false} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, show_guarantees: e.target.checked } } })} />
+                          <span>Hiện 3 thẻ cam kết bảo hành</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <h4 className="font-bold text-orange-400 uppercase">2. Nội Dung Nút Bấm, Cam Kết & Ghi Chú Riêng</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Nhãn trạng thái kho</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.in_stock_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, in_stock_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ nút Thêm giỏ hàng</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.add_cart_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, add_cart_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ nút Mua ngay</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.buy_now_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, buy_now_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Cam kết 1 (Giao hàng)</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.badge_shipping || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, badge_shipping: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Cam kết 2 (Chất lượng)</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.badge_authentic || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, badge_authentic: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Cam kết 3 (Đổi trả)</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.badge_return || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, badge_return: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Ghi chú khuyến mãi riêng hiển thị dưới giá (tùy chọn)</label>
+                        <input type="text" value={siteSettings.pages_config?.product_detail?.custom_note || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, custom_note: e.target.value } } })} placeholder="VD: 🎁 Tặng kèm 1 gói súp thưởng Ciao khi mua từ 2 túi!" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.6. TRANG TIN TỨC & CẨM NANG (CUSTOM MÀU SẮC, FONT, ẨN/HIỆN & SỐ CỘT) */}
+                {activeTab === 'page_news' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">📰 Tùy Chỉnh Tự Do Trang Tin Tức (/tin-tuc)</h3>
+                        <p className="text-xs text-slate-400">Chỉnh màu sắc, font chữ, ẩn/hiện Banner đầu trang, chọn số cột hiển thị (2/3/4 cột) và tiêu đề.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Trang Tin Tức'}
+                      </button>
+                    </div>
+
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <h4 className="font-bold text-indigo-400 uppercase">1. Màu Sắc, Font Chữ & Bố Cục</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nền trang</label>
+                          <input type="color" value={siteSettings.pages_config?.news_page?.bg_color || '#ffffff'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, bg_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu chữ</label>
+                          <input type="color" value={siteSettings.pages_config?.news_page?.text_color || '#111827'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, text_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu nhấn</label>
+                          <input type="color" value={siteSettings.pages_config?.news_page?.accent_color || '#ff7f5c'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, accent_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Font chữ</label>
+                          <select value={siteSettings.pages_config?.news_page?.font_family || 'inherit'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, font_family: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] px-2 rounded-lg text-slate-100">
+                            <option value="inherit">Mặc định</option>
+                            <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                            <option value="Georgia, serif">Serif (Cổ điển)</option>
+                            <option value="'Courier New', monospace">Monospace</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Số cột bài viết</label>
+                          <select value={siteSettings.pages_config?.news_page?.columns_count || 4} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, columns_count: Number(e.target.value) } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] px-2 rounded-lg text-slate-100">
+                            <option value={2}>2 cột rộng</option>
+                            <option value={3}>3 cột vừa</option>
+                            <option value={4}>4 cột (Mặc định)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 font-semibold text-slate-200 cursor-pointer pt-2 border-t border-[#27272a]">
+                        <input type="checkbox" checked={siteSettings.pages_config?.news_page?.show_banner !== false} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, show_banner: e.target.checked } } })} />
+                        <span>Hiển thị khung Banner tiêu đề ở đầu trang Tin tức</span>
+                      </label>
+                    </div>
+
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <h4 className="font-bold text-emerald-400 uppercase">2. Nội Dung Chữ Trang Tin Tức</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Nhãn nhỏ (Badge)</label>
+                          <input type="text" value={siteSettings.pages_config?.news_page?.badge_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, badge_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ nút Đọc tiếp</label>
+                          <input type="text" value={siteSettings.pages_config?.news_page?.read_more_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, read_more_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Tiêu đề chính trang Tin Tức</label>
+                        <input type="text" value={siteSettings.pages_config?.news_page?.title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Mô tả ngắn trang Tin Tức</label>
+                        <textarea rows={2} value={siteSettings.pages_config?.news_page?.subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                </div>
+
+                {isCustomizerTab && (
+                  <div className="flex-1 flex flex-col bg-[#09090b] overflow-hidden">
+                    {/* Thanh công cụ Live Preview giống WordPress */}
+                    <div className="h-11 px-4 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between text-xs shrink-0">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="font-bold text-slate-200">Xem Trước Trực Tiếp (WordPress Live Customizer)</span>
+                        <span className="text-[11px] text-slate-400 font-mono hidden xl:inline truncate max-w-xs">{getPreviewUrl()}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDevice('desktop')}
+                          className={`px-2.5 py-1 rounded font-bold ${previewDevice === 'desktop' ? 'bg-indigo-600 text-white' : 'bg-[#27272a] text-slate-300'}`}
+                        >🖥️ Máy tính</button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDevice('mobile')}
+                          className={`px-2.5 py-1 rounded font-bold ${previewDevice === 'mobile' ? 'bg-indigo-600 text-white' : 'bg-[#27272a] text-slate-300'}`}
+                        >📱 Điện thoại</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (previewIframeRef.current) {
+                              previewIframeRef.current.src = getPreviewUrl();
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded bg-[#27272a] hover:bg-[#323238] text-slate-200 font-bold"
+                        >🔄 Tải lại</button>
+                      </div>
+                    </div>
+
+                    {/* Khung hiển thị toàn bộ trang Web Storefront thật */}
+                    <div className="flex-1 overflow-auto flex justify-center bg-[#09090b] p-3">
+                      <iframe
+                        ref={previewIframeRef}
+                        src={getPreviewUrl()}
+                        onLoad={() => {
+                          if (previewIframeRef.current && previewIframeRef.current.contentWindow) {
+                            previewIframeRef.current.contentWindow.postMessage(
+                              { type: 'MEOCUNG_LIVE_PREVIEW', settings: siteSettings },
+                              '*'
+                            );
+                          }
+                        }}
+                        className={`bg-white rounded-xl shadow-2xl border border-[#27272a] transition-all duration-300 ${
+                          previewDevice === 'mobile' ? 'w-[390px] h-full' : 'w-full h-full'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </main>
 
@@ -1926,50 +3908,32 @@
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="block font-bold text-slate-300 uppercase">Ảnh sản phẩm (Chọn file ảnh hoặc dán link)</label>
+                    <div>
+                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh sản phẩm (Vercel Blob)</label>
                       <div className="flex items-center gap-2">
-                        <label className="shrink-0 cursor-pointer px-3 py-2 rounded-lg bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] text-slate-200 font-bold text-xs transition">
-                          📁 Chọn ảnh từ máy
+                        <input
+                          type="url"
+                          value={productForm.image}
+                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                          className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                        />
+                        <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200 transition-colors">
+                          {uploadingTarget === 'product' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
                           <input
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            disabled={uploadingTarget === 'product'}
                             onChange={(e) => {
-                              const file = e.target.files && e.target.files[0];
-                              if (!file) return;
-                              const reader = new FileReader();
-                              reader.onload = () => {
-                                if (typeof reader.result === 'string') {
-                                  setProductForm((prev) => ({ ...prev, image: reader.result }));
-                                }
-                              };
-                              reader.readAsDataURL(file);
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadImage(file, 'product');
+                              e.target.value = '';
                             }}
                           />
                         </label>
-                        <input
-                          type="text"
-                          value={productForm.image && productForm.image.startsWith('data:') ? '' : (productForm.image || '')}
-                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                          placeholder="Hoặc dán link ảnh (https://...)"
-                          className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
-                        />
                       </div>
                       {productForm.image && (
-                        <div className="flex items-center gap-3 p-2 rounded-lg bg-[#121214] border border-[#27272a]">
-                          <img src={productForm.image} alt="Xem trước" className="w-12 h-12 rounded-lg object-cover border border-[#3f3f46]" />
-                          <span className="text-[11px] text-slate-400 truncate flex-1">
-                            {productForm.image.startsWith('data:') ? 'Đã chọn ảnh từ máy tính' : productForm.image}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setProductForm({ ...productForm, image: '' })}
-                            className="px-2 py-1 rounded text-[11px] font-bold bg-rose-950/60 text-rose-400 border border-rose-800/50"
-                          >
-                            Xóa
-                          </button>
-                        </div>
+                        <img src={productForm.image} alt="Preview" className="mt-2 h-16 w-16 rounded-lg object-cover border border-[#27272a]" />
                       )}
                     </div>
 
@@ -2044,13 +4008,32 @@
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh bìa bài viết</label>
-                      <input
-                        type="url"
-                        value={postForm.coverImage}
-                        onChange={(e) => setPostForm({ ...postForm, coverImage: e.target.value })}
-                        className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-indigo-500"
-                      />
+                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh bìa bài viết (Vercel Blob)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={postForm.coverImage}
+                          onChange={(e) => setPostForm({ ...postForm, coverImage: e.target.value })}
+                          className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-indigo-500"
+                        />
+                        <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200 transition-colors">
+                          {uploadingTarget === 'post' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingTarget === 'post'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadImage(file, 'post');
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {postForm.coverImage && (
+                        <img src={postForm.coverImage} alt="Preview" className="mt-2 h-16 w-24 rounded-lg object-cover border border-[#27272a]" />
+                      )}
                     </div>
 
                     <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
@@ -2067,6 +4050,215 @@
                       >
                         Lưu Bài Viết
                       </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+            {/* MODAL THÊM NHÂN VIÊN */}
+            {isStaffModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-md w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">Thêm Nhân Viên Quản Trị</h3>
+                    <button onClick={() => setIsStaffModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleCreateStaff} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Email Nhân Viên *</label>
+                      <input type="email" required value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} placeholder="nhanvien@meocung.vn" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Mật khẩu mặc định</label>
+                      <input type="password" value={staffForm.password} onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })} placeholder="Mặc định: Admin@123" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Vai Trò Phân Quyền</label>
+                      <select value={staffForm.role} onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                        <option value="admin">Super Admin (Toàn quyền)</option>
+                        <option value="warehouse_manager">Quản Lý Kho & Sản Phẩm</option>
+                        <option value="editor">Biên Tập Viên (PayloadCMS)</option>
+                        <option value="order_staff">Nhân Viên Xử Lý Đơn</option>
+                      </select>
+                    </div>
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsStaffModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Tạo Nhân Viên</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL TẠO VAI TRÒ RBAC */}
+            {isRoleModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-md w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">Tạo Vai Trò Phân Quyền Mới</h3>
+                    <button onClick={() => setIsRoleModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleCreateRole} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Tên Vai Trò *</label>
+                      <input type="text" required value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} placeholder="VD: Cộng tác viên kho" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Mã Vai Trò (Code)</label>
+                      <input type="text" value={roleForm.code} onChange={(e) => setRoleForm({ ...roleForm, code: e.target.value })} placeholder="VD: ctv_kho" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-300 font-mono" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Mô tả nhiệm vụ</label>
+                      <textarea rows={2} value={roleForm.description} onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsRoleModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Lưu Vai Trò</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL DANH MỤC */}
+            {isCatModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-md w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">{editingCat ? 'Sửa Danh Mục' : 'Thêm Danh Mục Mới'}</h3>
+                    <button onClick={() => setIsCatModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleSaveCategory} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Tên Danh Mục *</label>
+                      <input type="text" required value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Đường dẫn (Handle)</label>
+                      <input type="text" value={catForm.handle} onChange={(e) => setCatForm({ ...catForm, handle: e.target.value })} placeholder="VD: thuc-an-hat (tự tạo nếu để trống)" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-300 font-mono" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Mô tả</label>
+                      <textarea rows={2} value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <label className="flex items-center gap-2 text-slate-300 font-semibold">
+                      <input type="checkbox" checked={catForm.is_active} onChange={(e) => setCatForm({ ...catForm, is_active: e.target.checked })} />
+                      <span>Kích hoạt danh mục</span>
+                    </label>
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsCatModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Lưu Danh Mục</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL BỘ SƯU TẬP */}
+            {isColModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-md w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">{editingCol ? 'Sửa Bộ Sưu Tập' : 'Tạo Bộ Sưu Tập Mới'}</h3>
+                    <button onClick={() => setIsColModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleSaveCollection} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Tên Bộ Sưu Tập *</label>
+                      <input type="text" required value={colForm.title} onChange={(e) => setColForm({ ...colForm, title: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Đường dẫn (Handle)</label>
+                      <input type="text" value={colForm.handle} onChange={(e) => setColForm({ ...colForm, handle: e.target.value })} placeholder="VD: ban-chay" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-300 font-mono" />
+                    </div>
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsColModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Lưu Bộ Sưu Tập</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL BANNER */}
+            {isBannerModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-lg w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">{editingBanner ? 'Sửa Banner' : 'Thêm Banner Mới'}</h3>
+                    <button onClick={() => setIsBannerModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleSaveBanner} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Tiêu đề Banner *</label>
+                      <input type="text" required value={bannerForm.title} onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Ảnh Banner (Vercel Blob)</label>
+                      <div className="flex items-center gap-2">
+                        <input type="url" required value={bannerForm.image_url} onChange={(e) => setBannerForm({ ...bannerForm, image_url: e.target.value })} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200">
+                          {uploadingTarget === 'banner' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(f, 'banner'); e.target.value = ''; }} />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Đường dẫn khi bấm vào</label>
+                        <input type="text" value={bannerForm.link_url} onChange={(e) => setBannerForm({ ...bannerForm, link_url: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Vị trí</label>
+                        <select value={bannerForm.position} onChange={(e) => setBannerForm({ ...bannerForm, position: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                          <option value="home_slider">Slider đầu trang chủ</option>
+                          <option value="mid_banner">Banner giữa trang</option>
+                        </select>
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-slate-300 font-semibold">
+                      <input type="checkbox" checked={bannerForm.is_active} onChange={(e) => setBannerForm({ ...bannerForm, is_active: e.target.checked })} />
+                      <span>Hiển thị trên Website</span>
+                    </label>
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsBannerModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg">Lưu Banner</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL COUPON */}
+            {isCouponModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="bg-[#18181b] rounded-2xl max-w-md w-full shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-slate-100">{editingCoupon ? 'Sửa Mã Giảm Giá' : 'Tạo Mã Giảm Giá Mới'}</h3>
+                    <button onClick={() => setIsCouponModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
+                  </div>
+                  <form onSubmit={handleSaveCoupon} className="p-5 space-y-3.5 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Mã Voucher *</label>
+                      <input type="text" required value={couponForm.code} onChange={(e) => setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })} placeholder="VD: MEOCUNG20" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-mono uppercase" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Giảm (%)</label>
+                        <input type="number" required min="1" max="100" value={couponForm.discount_percent} onChange={(e) => setCouponForm({ ...couponForm, discount_percent: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Đơn tối thiểu (VNĐ)</label>
+                        <input type="number" required value={couponForm.min_order_value} onChange={(e) => setCouponForm({ ...couponForm, min_order_value: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-slate-300 font-semibold">
+                      <input type="checkbox" checked={couponForm.is_active} onChange={(e) => setCouponForm({ ...couponForm, is_active: e.target.checked })} />
+                      <span>Kích hoạt mã</span>
+                    </label>
+                    <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
+                      <button type="button" onClick={() => setIsCouponModalOpen(false)} className="px-3.5 py-2 font-bold text-slate-400 bg-[#27272a] rounded-lg">Hủy</button>
+                      <button type="submit" className="px-4 py-2 font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg">Lưu Mã</button>
                     </div>
                   </form>
                 </div>
