@@ -16,6 +16,31 @@
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
 
+      /* Thanh cuộn siêu mảnh, tiệp màu tối/sáng cho Sidebar */
+      .sidebar-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #2e2e34 transparent;
+      }
+      .sidebar-scroll::-webkit-scrollbar {
+        width: 4px;
+      }
+      .sidebar-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .sidebar-scroll::-webkit-scrollbar-thumb {
+        background-color: #2e2e34;
+        border-radius: 9999px;
+      }
+      .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+        background-color: #4b4b55;
+      }
+      html.light-theme .sidebar-scroll {
+        scrollbar-color: #cbd5e1 transparent;
+      }
+      html.light-theme .sidebar-scroll::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+      }
+
       /* Chế độ giao diện Sáng (Light Mode) cân đối, giữ nguyên nút màu nhấn */
       html.light-theme body,
       html.light-theme .bg-\[\#121214\] { background-color: #f8fafc !important; color: #0f172a !important; }
@@ -1820,7 +1845,7 @@
                 </div>
 
                 {/* Menu Điều hướng */}
-                <nav className="flex-1 overflow-y-auto p-3 space-y-4 text-xs font-medium">
+                <nav className="sidebar-scroll flex-1 overflow-y-auto p-3 space-y-4 text-xs font-medium">
                   {/* MEDUSA COMMERCE ENGINE */}
                   <div>
                     <div className="px-3 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
