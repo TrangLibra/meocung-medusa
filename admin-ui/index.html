@@ -1415,6 +1415,24 @@
                                     ? `${v.applicable_products.length} sản phẩm được chọn`
                                     : 'Tất cả sản phẩm'}
                                 </p>
+                                {Array.isArray(v.applicable_products) && v.applicable_products.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {v.applicable_products.map((pid) => {
+                                      const matched = products.find((p) => p.id === pid || p.name === pid);
+                                      return (
+                                        <span
+                                          key={pid}
+                                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#121214] border border-[#3f3f46] text-[10px] text-slate-200 max-w-full"
+                                        >
+                                          {matched && matched.image && (
+                                            <img src={matched.image} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" />
+                                          )}
+                                          <span className="truncate max-w-[180px]">{matched ? matched.name : pid}</span>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                                 <p>Lượt dùng: {v.used_count || 0}{v.max_uses ? ` / ${v.max_uses}` : ' (Không giới hạn)'}</p>
                                 {v.expires_at && <p>Hết hạn: {new Date(v.expires_at).toLocaleDateString('vi-VN')}</p>}
                               </div>
