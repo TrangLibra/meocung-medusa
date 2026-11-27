@@ -595,6 +595,38 @@
               col4_title: 'Kết Nối Với Mèo Cưng',
               col4_desc: 'Đăng ký nhận thông tin khuyến mãi và bí quyết chăm sóc hoàng thượng khỏe mạnh!',
               col4_btn: 'Gửi',
+              columns: [
+                { id: 'col-brand', type: 'brand', title: 'Thông Tin Shop' },
+                {
+                  id: 'col-cat',
+                  type: 'links',
+                  title: 'Danh Mục Nổi Bật',
+                  links: [
+                    { label: 'Thức ăn hạt dinh dưỡng', href: '/products?category=thuc-an-hat' },
+                    { label: 'Pate & Súp thưởng cho mèo', href: '/products?category=pate-cho-meo' },
+                    { label: 'Cát vệ sinh khử mùi', href: '/products?category=cat-ve-sinh' },
+                    { label: 'Cẩm nang chăm sóc mèo cưng', href: '/tin-tuc' },
+                  ],
+                },
+                {
+                  id: 'col-policy',
+                  type: 'links',
+                  title: 'Chính Sách & Hỗ Trợ',
+                  links: [
+                    { label: 'Chính sách giao hàng 2H', href: '/chinh-sach#giao-hang' },
+                    { label: 'Chính sách đổi trả trong 7 ngày', href: '/chinh-sach#doi-tra' },
+                    { label: 'Hướng dẫn mua hàng & thanh toán', href: '/chinh-sach#mua-hang' },
+                    { label: 'Cam kết sản phẩm chính hãng', href: '/chinh-sach#chinh-hang' },
+                  ],
+                },
+                {
+                  id: 'col-news',
+                  type: 'newsletter',
+                  title: 'Kết Nối Với Mèo Cưng',
+                  desc: 'Đăng ký nhận thông tin khuyến mãi và bí quyết chăm sóc hoàng thượng khỏe mạnh!',
+                  btn_text: 'Gửi',
+                },
+              ],
             },
           },
         });
@@ -1674,172 +1706,219 @@
                   </form>
                 )}
 
-                {/* 6.3. CHÂN TRANG (FOOTER 4 CỘT ĐẦY ĐỦ) */}
+                {/* 6.3. CHÂN TRANG (FOOTER ĐỘNG - THÊM / XÓA / ĐỔI VỊ TRÍ CỘT) */}
                 {activeTab === 'site_footer' && (
                   <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-5xl mx-auto">
-                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
                       <div>
-                        <h3 className="font-bold text-slate-100 text-sm">🦶 Chân Trang (Footer 4 Cột Đầy Đủ) & Liên Hệ</h3>
-                        <p className="text-xs text-slate-400">Chỉnh sửa đầy đủ nội dung cả 4 cột của Footer và dòng Copyright cuối trang.</p>
+                        <h3 className="font-bold text-slate-100 text-sm">🦶 Chân Trang (Footer Động — Thêm, Xóa & Đổi Vị Trí Cột)</h3>
+                        <p className="text-xs text-slate-400">Chủ shop có thể thêm cột mới, xóa bớt cột hoặc bấm Trái/Phải để đổi thứ tự cột hiển thị ở Footer.</p>
                       </div>
-                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
-                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Footer'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cols = siteSettings.pages_config?.footer?.columns || [];
+                            setSiteSettings({
+                              ...siteSettings,
+                              pages_config: {
+                                ...siteSettings.pages_config,
+                                footer: {
+                                  ...siteSettings.pages_config?.footer,
+                                  columns: [
+                                    ...cols,
+                                    { id: 'col-' + Date.now(), type: 'links', title: 'Cột Mới', links: [{ label: 'Liên kết mới', href: '/products' }] }
+                                  ]
+                                }
+                              }
+                            });
+                          }}
+                          className="px-3 py-2 text-xs font-bold bg-[#27272a] hover:bg-[#323238] text-indigo-300 border border-[#3f3f46] rounded-lg"
+                        >
+                          + Thêm Cột Mới
+                        </button>
+                        <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                          {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Footer'}
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Cột 1: Thông tin Shop */}
-                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
-                      <h4 className="font-bold text-orange-400 uppercase">Cột 1: Giới Thiệu Shop & Liên Hệ</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Số Hotline</label>
-                          <input type="text" value={siteSettings.hotline} onChange={(e) => setSiteSettings({ ...siteSettings, hotline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Địa chỉ cửa hàng</label>
-                          <input type="text" value={siteSettings.address} onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Link Facebook</label>
-                          <input type="text" value={siteSettings.facebook_url} onChange={(e) => setSiteSettings({ ...siteSettings, facebook_url: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-300 mb-1">Đoạn giới thiệu cửa hàng</label>
-                        <textarea rows={2} value={siteSettings.footer_about} onChange={(e) => setSiteSettings({ ...siteSettings, footer_about: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                      </div>
-                    </div>
+                    <div className="space-y-4 text-xs">
+                      {(siteSettings.pages_config?.footer?.columns || []).map((col, cIdx, arr) => {
+                        const moveCol = (dir) => {
+                          const targetIdx = cIdx + dir;
+                          if (targetIdx < 0 || targetIdx >= arr.length) return;
+                          const copy = [...arr];
+                          const tmp = copy[cIdx];
+                          copy[cIdx] = copy[targetIdx];
+                          copy[targetIdx] = tmp;
+                          setSiteSettings({
+                            ...siteSettings,
+                            pages_config: {
+                              ...siteSettings.pages_config,
+                              footer: { ...siteSettings.pages_config?.footer, columns: copy }
+                            }
+                          });
+                        };
 
-                    {/* Cột 2 & Cột 3: Danh Mục & Chính Sách */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-                      <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-indigo-400 uppercase">Cột 2: Danh Mục Nổi Bật</h4>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const cur = siteSettings.pages_config?.footer?.col2_links || [];
-                              setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col2_links: [...cur, { label: 'Mục mới', href: '/products' }] } } });
-                            }}
-                            className="px-2 py-1 bg-[#27272a] text-indigo-300 font-bold rounded"
-                          >+ Thêm dòng</button>
-                        </div>
-                        <input
-                          type="text"
-                          value={siteSettings.pages_config?.footer?.col2_title || ''}
-                          onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col2_title: e.target.value } } })}
-                          placeholder="Tiêu đề cột 2"
-                          className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-bold"
-                        />
-                        {(siteSettings.pages_config?.footer?.col2_links || []).map((lnk, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={lnk.label}
-                              onChange={(e) => {
-                                const arr = [...(siteSettings.pages_config?.footer?.col2_links || [])];
-                                arr[idx] = { ...arr[idx], label: e.target.value };
-                                setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col2_links: arr } } });
-                              }}
-                              className="flex-1 bg-[#121214] border border-[#27272a] px-2.5 py-1.5 rounded text-slate-100"
-                            />
-                            <input
-                              type="text"
-                              value={lnk.href}
-                              onChange={(e) => {
-                                const arr = [...(siteSettings.pages_config?.footer?.col2_links || [])];
-                                arr[idx] = { ...arr[idx], href: e.target.value };
-                                setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col2_links: arr } } });
-                              }}
-                              className="w-28 bg-[#121214] border border-[#27272a] px-2 py-1.5 rounded text-slate-400 font-mono"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const arr = (siteSettings.pages_config?.footer?.col2_links || []).filter((_, i) => i !== idx);
-                                setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col2_links: arr } } });
-                              }}
-                              className="px-2 py-1.5 bg-rose-950/60 text-rose-400 rounded font-bold"
-                            >✕</button>
+                        const removeCol = () => {
+                          if (!confirm('Xóa cột "' + (col.title || 'này') + '" khỏi Footer?')) return;
+                          const copy = arr.filter((_, i) => i !== cIdx);
+                          setSiteSettings({
+                            ...siteSettings,
+                            pages_config: {
+                              ...siteSettings.pages_config,
+                              footer: { ...siteSettings.pages_config?.footer, columns: copy }
+                            }
+                          });
+                        };
+
+                        const updateCol = (patch) => {
+                          const copy = [...arr];
+                          copy[cIdx] = { ...copy[cIdx], ...patch };
+                          setSiteSettings({
+                            ...siteSettings,
+                            pages_config: {
+                              ...siteSettings.pages_config,
+                              footer: { ...siteSettings.pages_config?.footer, columns: copy }
+                            }
+                          });
+                        };
+
+                        return (
+                          <div key={col.id || cIdx} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#27272a]">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 font-bold border border-indigo-800/40">
+                                  Cột {cIdx + 1}
+                                </span>
+                                <span className="font-bold text-slate-200">
+                                  {col.type === 'brand' ? '🏠 Thông tin Shop & Liên hệ' : col.type === 'newsletter' ? '📧 Đăng ký nhận ưu đãi' : '🔗 Danh sách liên kết'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={cIdx === 0}
+                                  onClick={() => moveCol(-1)}
+                                  className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 text-slate-200 rounded font-bold"
+                                  title="Đưa sang trái / lên trước"
+                                >◀ Sang trái</button>
+                                <button
+                                  type="button"
+                                  disabled={cIdx === arr.length - 1}
+                                  onClick={() => moveCol(1)}
+                                  className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 text-slate-200 rounded font-bold"
+                                  title="Đưa sang phải / ra sau"
+                                >Sang phải ▶</button>
+                                <button
+                                  type="button"
+                                  onClick={removeCol}
+                                  className="px-2 py-1 bg-rose-950/60 hover:bg-rose-900/60 text-rose-400 border border-rose-800/40 rounded font-bold"
+                                >🗑️ Xóa cột</button>
+                              </div>
+                            </div>
+
+                            {col.type === 'brand' && (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Số Hotline</label>
+                                    <input type="text" value={siteSettings.hotline} onChange={(e) => setSiteSettings({ ...siteSettings, hotline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Địa chỉ cửa hàng</label>
+                                    <input type="text" value={siteSettings.address} onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Link Facebook</label>
+                                    <input type="text" value={siteSettings.facebook_url} onChange={(e) => setSiteSettings({ ...siteSettings, facebook_url: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block font-bold text-slate-300 mb-1">Đoạn giới thiệu cửa hàng</label>
+                                  <textarea rows={2} value={siteSettings.footer_about} onChange={(e) => setSiteSettings({ ...siteSettings, footer_about: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                </div>
+                              </div>
+                            )}
+
+                            {col.type === 'links' && (
+                              <div className="space-y-2.5">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={col.title || ''}
+                                    onChange={(e) => updateCol({ title: e.target.value })}
+                                    placeholder="Tiêu đề cột"
+                                    className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-bold"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCol({ links: [...(col.links || []), { label: 'Link mới', href: '/products' }] })}
+                                    className="px-3 py-2 bg-[#27272a] hover:bg-[#323238] text-indigo-300 font-bold rounded-lg shrink-0"
+                                  >+ Thêm dòng</button>
+                                </div>
+                                {(col.links || []).map((lnk, lIdx) => (
+                                  <div key={lIdx} className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={lnk.label}
+                                      placeholder="Tên hiển thị"
+                                      onChange={(e) => {
+                                        const ls = [...(col.links || [])];
+                                        ls[lIdx] = { ...ls[lIdx], label: e.target.value };
+                                        updateCol({ links: ls });
+                                      }}
+                                      className="flex-1 bg-[#121214] border border-[#27272a] px-2.5 py-1.5 rounded text-slate-100"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={lnk.href}
+                                      placeholder="Đường dẫn (/...)"
+                                      onChange={(e) => {
+                                        const ls = [...(col.links || [])];
+                                        ls[lIdx] = { ...ls[lIdx], href: e.target.value };
+                                        updateCol({ links: ls });
+                                      }}
+                                      className="w-44 bg-[#121214] border border-[#27272a] px-2.5 py-1.5 rounded text-slate-400 font-mono"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCol({ links: (col.links || []).filter((_, i) => i !== lIdx) })}
+                                      className="px-2 py-1.5 bg-rose-950/60 text-rose-400 rounded font-bold"
+                                    >✕</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {col.type === 'newsletter' && (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Tiêu đề cột</label>
+                                    <input type="text" value={col.title || ''} onChange={(e) => updateCol({ title: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                  <div>
+                                    <label className="block font-bold text-slate-300 mb-1">Chữ trên nút gửi</label>
+                                    <input type="text" value={col.btn_text || ''} onChange={(e) => updateCol({ btn_text: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block font-bold text-slate-300 mb-1">Mô tả nhận ưu đãi</label>
+                                  <input type="text" value={col.desc || ''} onChange={(e) => updateCol({ desc: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-
-                      <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-emerald-400 uppercase">Cột 3: Chính Sách & Hỗ Trợ</h4>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const cur = siteSettings.pages_config?.footer?.col3_links || [];
-                              setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col3_links: [...cur, { label: 'Chính sách mới', href: '/chinh-sach' }] } } });
-                            }}
-                            className="px-2 py-1 bg-[#27272a] text-emerald-300 font-bold rounded"
-                          >+ Thêm dòng</button>
-                        </div>
-                        <input
-                          type="text"
-                          value={siteSettings.pages_config?.footer?.col3_title || ''}
-                          onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col3_title: e.target.value } } })}
-                          placeholder="Tiêu đề cột 3"
-                          className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-bold"
-                        />
-                        {(siteSettings.pages_config?.footer?.col3_links || []).map((lnk, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={lnk.label}
-                              onChange={(e) => {
-                                const arr = [...(siteSettings.pages_config?.footer?.col3_links || [])];
-                                arr[idx] = { ...arr[idx], label: e.target.value };
-                                setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col3_links: arr } } });
-                              }}
-                              className="flex-1 bg-[#121214] border border-[#27272a] px-2.5 py-1.5 rounded text-slate-100"
-                            />
-                            <input
-                              type="text"
-                              value={lnk.href}
-                              onChange={(e) => {
-                                const arr = [...(siteSettings.pages_config?.footer?.col3_links || [])];
-                                arr[idx] = { ...arr[idx], href: e.target.value };
-                                setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col3_links: arr } } });
-                              }}
-                              className="w-28 bg-[#121214] border border-[#27272a] px-2 py-1.5 rounded text-slate-400 font-mono"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const arr = (siteSettings.pages_config?.footer?.col3_links || []).filter((_, i) => i !== idx);
-                                setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col3_links: arr } } });
-                              }}
-                              className="px-2 py-1.5 bg-rose-950/60 text-rose-400 rounded font-bold"
-                            >✕</button>
-                          </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
 
-                    {/* Cột 4 & Bản quyền */}
-                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
-                      <h4 className="font-bold text-amber-400 uppercase">Cột 4: Kết Nối & Nhận Tin Khuyến Mãi + Bản Quyền</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Tiêu đề cột 4</label>
-                          <input type="text" value={siteSettings.pages_config?.footer?.col4_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col4_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Chữ trên nút đăng ký</label>
-                          <input type="text" value={siteSettings.pages_config?.footer?.col4_btn || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col4_btn: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-300 mb-1">Mô tả nhận ưu đãi cột 4</label>
-                        <input type="text" value={siteSettings.pages_config?.footer?.col4_desc || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, footer: { ...siteSettings.pages_config?.footer, col4_desc: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-300 mb-1">Dòng bản quyền (Copyright) ở đáy Footer</label>
-                        <input type="text" value={siteSettings.footer_copyright} onChange={(e) => setSiteSettings({ ...siteSettings, footer_copyright: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                      </div>
+                    {/* Bản quyền Copyright */}
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-2 text-xs">
+                      <label className="block font-bold text-slate-300">Dòng bản quyền (Copyright) ở đáy Footer</label>
+                      <input type="text" value={siteSettings.footer_copyright} onChange={(e) => setSiteSettings({ ...siteSettings, footer_copyright: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                     </div>
                   </form>
                 )}
