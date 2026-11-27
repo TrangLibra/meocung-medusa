@@ -276,8 +276,8 @@
           const qs = params.toString() ? `?${params.toString()}` : '';
 
           const candidates = window.location.hostname === 'localhost'
-            ? ['http://localhost:3000/api/admin/customers', `${STOREFRONT_URL}/api/admin/customers`]
-            : [`${STOREFRONT_URL}/api/admin/customers`];
+            ? ['http://localhost:3000/api/admin/customers', 'https://meocung-ecommerce-atoan.vercel.app/api/admin/customers', `${STOREFRONT_URL}/api/admin/customers`]
+            : ['https://meocung-ecommerce-atoan.vercel.app/api/admin/customers', `${STOREFRONT_URL}/api/admin/customers`];
 
           for (const base of candidates) {
             try {
@@ -390,8 +390,8 @@
           const qs = params.toString() ? `?${params.toString()}` : '';
 
           const candidates = window.location.hostname === 'localhost'
-            ? ['http://localhost:3000/api/admin/orders', `${STOREFRONT_URL}/api/admin/orders`]
-            : [`${STOREFRONT_URL}/api/admin/orders`];
+            ? ['http://localhost:3000/api/admin/orders', 'https://meocung-ecommerce-atoan.vercel.app/api/admin/orders', `${STOREFRONT_URL}/api/admin/orders`]
+            : ['https://meocung-ecommerce-atoan.vercel.app/api/admin/orders', `${STOREFRONT_URL}/api/admin/orders`];
 
           for (const base of candidates) {
             try {
