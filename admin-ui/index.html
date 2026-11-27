@@ -240,6 +240,84 @@
         });
         const [searchQuery, setSearchQuery] = useState('');
 
+        // NHÓM 1 (SALEOR UX): Command Bar (Ctrl+K) & Bulk Actions
+        const [isCommandOpen, setIsCommandOpen] = useState(false);
+        const [commandQuery, setCommandQuery] = useState('');
+        const [selectedProductIds, setSelectedProductIds] = useState([]);
+        const [bulkStockValue, setBulkStockValue] = useState('');
+        const [bulkPricePercent, setBulkPricePercent] = useState('');
+        const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+        const [bulkOrderStatus, setBulkOrderStatus] = useState('confirmed');
+
+        useEffect(() => {
+          const onKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+              e.preventDefault();
+              setIsCommandOpen((prev) => !prev);
+            } else if (e.key === 'Escape') {
+              setIsCommandOpen(false);
+            }
+          };
+          window.addEventListener('keydown', onKeyDown);
+          return () => window.removeEventListener('keydown', onKeyDown);
+        }, []);
+
+        const exportToCsv = (filename, headers, rows) => {
+          const escapeCell = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+          const csv = [headers.map(escapeCell).join(','), ...rows.map((r) => r.map(escapeCell).join(','))].join('\n');
+          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        const handleBulkProductStock = async () => {
+          const qty = Number(bulkStockValue);
+          if (Number.isNaN(qty) || qty < 0 || selectedProductIds.length === 0) return;
+          const targets = products.filter((p) => selectedProductIds.includes(p.id));
+          await Promise.all(targets.map((p) => handleQuickUpdateProductField(p, { inventory: qty })));
+          setBulkStockValue('');
+          setSelectedProductIds([]);
+        };
+
+        const handleBulkProductPricePercent = async () => {
+          const pct = Number(bulkPricePercent);
+          if (Number.isNaN(pct) || pct === 0 || selectedProductIds.length === 0) return;
+          const targets = products.filter((p) => selectedProductIds.includes(p.id));
+          await Promise.all(targets.map((p) => {
+            const nextPrice = Math.max(1000, Math.round((Number(p.price || 0) * (1 + pct / 100)) / 1000) * 1000);
+            return handleQuickUpdateProductField(p, { price: nextPrice });
+          }));
+          setBulkPricePercent('');
+          setSelectedProductIds([]);
+        };
+
+        const handleBulkDeleteProducts = async () => {
+          if (selectedProductIds.length === 0) return;
+          if (!confirm(`Xác nhận xóa ${selectedProductIds.length} sản phẩm đã chọn khỏi kho hàng?`)) return;
+          await Promise.all(selectedProductIds.map((id) =>
+            fetch(`${getCmsApiCandidates('/api/medusa/products')[0]}?id=${id}`, { method: 'DELETE' }).catch(() => {})
+          ));
+          setProducts((prev) => prev.filter((p) => !selectedProductIds.includes(p.id)));
+          setSelectedProductIds([]);
+        };
+
+        const handleBulkUpdateOrders = async () => {
+          if (selectedOrderIds.length === 0) return;
+          await Promise.all(selectedOrderIds.map((id) =>
+            fetch(`${orderApiBase}/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: bulkOrderStatus }),
+            }).catch(() => {})
+          ));
+          setSelectedOrderIds([]);
+          fetchOrders();
+        };
+
         // Tự động lưu và phát broadcast event khi có thay đổi sản phẩm
         useEffect(() => {
           try {
@@ -1929,6 +2007,16 @@
                   )}
 
                   <button
+                    onClick={() => { setCommandQuery(''); setIsCommandOpen(true); }}
+                    title="Mở Command Bar tìm kiếm nhanh (Ctrl+K)"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#27272a] hover:bg-[#323238] rounded-lg border border-[#3f3f46] transition-colors"
+                  >
+                    <span>⌘</span>
+                    <span className="hidden sm:inline">Tìm nhanh</span>
+                    <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#121214] border border-[#3f3f46] text-slate-400">Ctrl+K</kbd>
+                  </button>
+
+                  <button
                     onClick={() => {
                       const isLight = document.documentElement.classList.toggle('light-theme');
                       localStorage.setItem('meocung_admin_theme', isLight ? 'light' : 'dark');
@@ -2346,10 +2434,72 @@
                       </div>
                     </div>
 
+                    {selectedProductIds.length > 0 && (
+                      <div className="bg-orange-950/40 border border-orange-700/50 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-orange-300">
+                          <span>☑️ Đã chọn {selectedProductIds.length} sản phẩm</span>
+                          <button onClick={() => setSelectedProductIds([])} className="text-[11px] underline text-slate-400 hover:text-slate-200">Bỏ chọn</button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <div className="flex items-center gap-1 bg-[#121214] border border-[#3f3f46] rounded-lg px-2 py-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={bulkStockValue}
+                              onChange={(e) => setBulkStockValue(e.target.value)}
+                              placeholder="Tồn kho mới"
+                              className="w-24 bg-transparent text-slate-100 outline-none"
+                            />
+                            <button onClick={handleBulkProductStock} className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded">Đặt kho</button>
+                          </div>
+                          <div className="flex items-center gap-1 bg-[#121214] border border-[#3f3f46] rounded-lg px-2 py-1">
+                            <input
+                              type="number"
+                              value={bulkPricePercent}
+                              onChange={(e) => setBulkPricePercent(e.target.value)}
+                              placeholder="% giá (+/-)"
+                              className="w-24 bg-transparent text-slate-100 outline-none"
+                            />
+                            <button onClick={handleBulkProductPricePercent} className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded">Đổi giá</button>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const selected = products.filter((p) => selectedProductIds.includes(p.id));
+                              exportToCsv(
+                                'meocung-products.csv',
+                                ['ID', 'Tên sản phẩm', 'Danh mục', 'Nhà cung cấp', 'Giá bán', 'Tồn kho'],
+                                selected.map((p) => [p.id, p.name, p.categoryName, p.vendor, p.price, p.inventory])
+                              );
+                            }}
+                            className="px-2.5 py-1.5 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] text-slate-200 font-bold rounded-lg"
+                          >
+                            📄 Xuất CSV
+                          </button>
+                          <button
+                            onClick={handleBulkDeleteProducts}
+                            className="px-2.5 py-1.5 bg-rose-950/70 hover:bg-rose-900 border border-rose-700/60 text-rose-300 font-bold rounded-lg"
+                          >
+                            🗑️ Xóa đã chọn
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-xl">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-[#27272a] bg-[#141416] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th className="py-3.5 pl-4 pr-2 w-10">
+                              <input
+                                type="checkbox"
+                                checked={filteredProducts.length > 0 && filteredProducts.every((p) => selectedProductIds.includes(p.id))}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedProductIds(filteredProducts.map((p) => p.id));
+                                  else setSelectedProductIds([]);
+                                }}
+                                className="accent-orange-500 cursor-pointer"
+                              />
+                            </th>
                             <th className="py-3.5 px-6">Ảnh & Tên Sản Phẩm</th>
                             <th className="py-3.5 px-6">Nhà Cung Cấp</th>
                             <th className="py-3.5 px-6">Danh Mục</th>
@@ -2361,6 +2511,17 @@
                         <tbody className="divide-y divide-[#27272a] text-xs">
                           {filteredProducts.map((p) => (
                             <tr key={p.id} className="hover:bg-[#202024]/60 transition-colors">
+                              <td className="py-3.5 pl-4 pr-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedProductIds.includes(p.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedProductIds((prev) => [...prev, p.id]);
+                                    else setSelectedProductIds((prev) => prev.filter((id) => id !== p.id));
+                                  }}
+                                  className="accent-orange-500 cursor-pointer"
+                                />
+                              </td>
                               <td className="py-3.5 px-6 flex items-center gap-3">
                                 <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover bg-[#121214] border border-[#27272a] shrink-0" />
                                 <div>
@@ -2519,7 +2680,58 @@
                       </div>
                     )}
 
+                    {selectedOrderIds.length > 0 && (
+                      <div className="bg-orange-950/40 border border-orange-700/50 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-orange-300">
+                          <span>☑️ Đã chọn {selectedOrderIds.length} đơn hàng</span>
+                          <button onClick={() => setSelectedOrderIds([])} className="text-[11px] underline text-slate-400 hover:text-slate-200">Bỏ chọn</button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <select
+                            value={bulkOrderStatus}
+                            onChange={(e) => setBulkOrderStatus(e.target.value)}
+                            className="px-2.5 py-1.5 bg-[#121214] border border-[#3f3f46] rounded-lg text-slate-100"
+                          >
+                            <option value="confirmed">Đã xác nhận</option>
+                            <option value="shipping">Đang vận chuyển</option>
+                            <option value="delivered">Đã giao hàng</option>
+                            <option value="cancelled">Đã hủy</option>
+                          </select>
+                          <button onClick={handleBulkUpdateOrders} className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg">
+                            Áp dụng trạng thái
+                          </button>
+                          <button
+                            onClick={() => {
+                              const selected = orders.filter((o) => selectedOrderIds.includes(o.id));
+                              exportToCsv(
+                                'meocung-orders.csv',
+                                ['Mã đơn', 'Khách hàng', 'SĐT', 'Email', 'Tổng tiền', 'Trạng thái', 'Mã vận đơn'],
+                                selected.map((o) => [o.order_code, o.customer_name, o.customer_phone, o.customer_email, o.grand_total, o.status, o.tracking_code || ''])
+                              );
+                            }}
+                            className="px-2.5 py-1.5 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] text-slate-200 font-bold rounded-lg"
+                          >
+                            📄 Xuất CSV Đơn
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden">
+                      {orders.length > 0 && (
+                        <div className="px-4 py-2.5 border-b border-[#27272a] bg-[#141416] flex items-center gap-2 text-[11px] font-bold text-slate-400">
+                          <input
+                            type="checkbox"
+                            checked={orders.length > 0 && orders.every((o) => selectedOrderIds.includes(o.id))}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedOrderIds(orders.map((o) => o.id));
+                              else setSelectedOrderIds([]);
+                            }}
+                            className="accent-orange-500 cursor-pointer"
+                          />
+                          <span>Chọn tất cả ({orders.length} đơn)</span>
+                        </div>
+                      )}
                       <div className="divide-y divide-[#27272a] text-xs">
                         {ordersLoading ? (
                           <div className="py-10 text-center text-slate-400">Đang tải danh sách đơn hàng từ Neon PostgreSQL...</div>
@@ -2529,6 +2741,17 @@
                           const st = ORDER_STATUS_LABELS[ord.status] || ORDER_STATUS_LABELS.pending;
                           return (
                             <div key={ord.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#202024] transition-colors">
+                              <div className="pt-1 shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedOrderIds.includes(ord.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedOrderIds((prev) => [...prev, ord.id]);
+                                    else setSelectedOrderIds((prev) => prev.filter((id) => id !== ord.id));
+                                  }}
+                                  className="accent-orange-500 cursor-pointer"
+                                />
+                              </div>
                               <div className="space-y-1 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="font-mono font-extrabold text-orange-400">#{ord.order_code}</span>
@@ -4176,6 +4399,112 @@
                       <button type="submit" className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">Lưu Bộ Sưu Tập</button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* COMMAND BAR MODAL (CTRL+K - SALEOR STYLE) */}
+            {isCommandOpen && (
+              <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/75 pt-20 p-4" onClick={() => setIsCommandOpen(false)}>
+                <div className="bg-[#18181b] rounded-2xl max-w-2xl w-full shadow-2xl border border-[#3f3f46] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  <div className="p-3.5 border-b border-[#27272a] flex items-center gap-3">
+                    <span className="text-orange-400 font-bold text-sm">⌘K</span>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={commandQuery}
+                      onChange={(e) => setCommandQuery(e.target.value)}
+                      placeholder="Tìm nhanh sản phẩm, mã đơn hàng, bài viết hoặc nhảy tới phân hệ..."
+                      className="flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
+                    />
+                    <button onClick={() => setIsCommandOpen(false)} className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#27272a] text-slate-400 hover:text-white">ESC</button>
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto p-3 space-y-4 text-xs">
+                    {(() => {
+                      const q = commandQuery.trim().toLowerCase();
+                      const navItems = [
+                        { tab: 'products', label: '🛍️ Danh Sách Sản Phẩm' },
+                        { tab: 'inventory', label: '📥 Quản Lý Tồn Kho' },
+                        { tab: 'categories', label: '🗂️ Danh Mục Sản Phẩm' },
+                        { tab: 'collections', label: '✨ Bộ Sưu Tập' },
+                        { tab: 'price_lists', label: '💰 Bảng Giá & Khuyến Mãi' },
+                        { tab: 'reviews', label: '⭐ Đánh Giá Sản Phẩm' },
+                        { tab: 'orders', label: '🚚 Đơn Hàng & Vận Chuyển' },
+                        { tab: 'customers', label: '🧑 Khách Hàng (Gmail OTP)' },
+                        { tab: 'staff', label: '🧑‍💼 Nhân Viên Quản Trị' },
+                        { tab: 'roles', label: '🛡️ Phân Quyền (RBAC)' },
+                        { tab: 'posts', label: '📰 Cẩm Nang Nuôi Mèo (PayloadCMS)' },
+                        { tab: 'banners', label: '🖼️ Banner Quảng Cáo & Slider' },
+                        { tab: 'coupons', label: '🏷️ Mã Giảm Giá & Voucher' },
+                        { tab: 'site_hero', label: '🏠 Tùy Chỉnh Trang Chủ (Live Preview)' },
+                      ].filter((n) => !q || n.label.toLowerCase().includes(q) || n.tab.includes(q));
+                      const matchedProds = products.filter((p) => !q || (p.name || '').toLowerCase().includes(q) || (p.vendor || '').toLowerCase().includes(q)).slice(0, 5);
+                      const matchedOrders = orders.filter((o) => !q || (o.order_code || '').toLowerCase().includes(q) || (o.customer_name || '').toLowerCase().includes(q)).slice(0, 5);
+                      const matchedPosts = posts.filter((p) => !q || (p.title || '').toLowerCase().includes(q)).slice(0, 4);
+                      return (
+                        <>
+                          <div>
+                            <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Thao tác nhanh</div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button onClick={() => { setIsCommandOpen(false); setActiveTab('products'); handleOpenCreateProduct(); }} className="text-left px-3 py-2 rounded-lg bg-[#121214] hover:bg-orange-600/20 border border-[#27272a] text-slate-200 font-semibold">➕ Thêm Sản Phẩm Mới</button>
+                              <button onClick={() => { setIsCommandOpen(false); setActiveTab('posts'); handleOpenCreatePost(); }} className="text-left px-3 py-2 rounded-lg bg-[#121214] hover:bg-indigo-600/20 border border-[#27272a] text-slate-200 font-semibold">✍️ Viết Bài Cẩm Nang Mới</button>
+                            </div>
+                          </div>
+                          {navItems.length > 0 && (
+                            <div>
+                              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Đi tới phân hệ</div>
+                              <div className="grid grid-cols-2 gap-1">
+                                {navItems.slice(0, 8).map((n) => (
+                                  <button key={n.tab} onClick={() => { setActiveTab(n.tab); setIsCommandOpen(false); }} className="text-left px-3 py-1.5 rounded-lg hover:bg-[#27272a] text-slate-200 flex items-center justify-between">
+                                    <span>{n.label}</span>
+                                    <span className="text-[10px] text-slate-500 font-mono">↵</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {matchedProds.length > 0 && (
+                            <div>
+                              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Sản phẩm ({matchedProds.length})</div>
+                              <div className="space-y-1">
+                                {matchedProds.map((p) => (
+                                  <button key={p.id} onClick={() => { setActiveTab('products'); setIsCommandOpen(false); handleOpenEditProduct(p); }} className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-[#27272a] flex items-center justify-between gap-2">
+                                    <span className="text-slate-200 truncate">{p.name}</span>
+                                    <span className="text-orange-400 font-bold shrink-0">{Number(p.price || 0).toLocaleString('vi-VN')} ₫</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {matchedOrders.length > 0 && (
+                            <div>
+                              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Đơn hàng ({matchedOrders.length})</div>
+                              <div className="space-y-1">
+                                {matchedOrders.map((o) => (
+                                  <button key={o.id} onClick={() => { setOrderSearch(o.order_code); setActiveTab('orders'); setIsCommandOpen(false); }} className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-[#27272a] flex items-center justify-between gap-2">
+                                    <span className="text-slate-200"><strong className="text-orange-400 font-mono">#{o.order_code}</strong> • {o.customer_name}</span>
+                                    <span className="text-slate-400 shrink-0">{Number(o.grand_total || 0).toLocaleString('vi-VN')} ₫</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {matchedPosts.length > 0 && (
+                            <div>
+                              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Bài viết ({matchedPosts.length})</div>
+                              <div className="space-y-1">
+                                {matchedPosts.map((p) => (
+                                  <button key={p.id} onClick={() => { setActiveTab('posts'); setIsCommandOpen(false); handleOpenEditPost(p); }} className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-[#27272a] text-slate-200 truncate block">
+                                    📰 {p.title}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             )}
