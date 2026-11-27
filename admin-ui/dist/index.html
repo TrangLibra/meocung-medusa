@@ -222,6 +222,14 @@
       ];
 
       const INITIAL_POSTS = [];
+      const formatVndInput = (val) => {
+        const num = Number(String(val ?? '').replace(/\D/g, ''));
+        return num ? num.toLocaleString('vi-VN') : '';
+      };
+      const parseVndInput = (str) => {
+        const digits = String(str ?? '').replace(/\D/g, '');
+        return digits ? Number(digits) : 0;
+      };
 
       function SingleUnifiedDashboard() {
         const [activeTab, setActiveTab] = useState('products');
@@ -1516,25 +1524,38 @@
                                   <label className="block text-slate-400 font-bold mb-1">
                                     {voucherForm.type === 'percent' ? 'Mức giảm (%)' : 'Số tiền giảm (VNĐ)'}
                                   </label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    max={voucherForm.type === 'percent' ? '100' : undefined}
-                                    required
-                                    value={voucherForm.discount_value}
-                                    onChange={(e) => setVoucherForm({ ...voucherForm, discount_value: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100"
-                                  />
+                                  {voucherForm.type === 'percent' ? (
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="100"
+                                      required
+                                      value={voucherForm.discount_value}
+                                      onChange={(e) => setVoucherForm({ ...voucherForm, discount_value: e.target.value })}
+                                      className="w-full px-3 py-2 rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100"
+                                    />
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      required
+                                      value={formatVndInput(voucherForm.discount_value)}
+                                      onChange={(e) => setVoucherForm({ ...voucherForm, discount_value: parseVndInput(e.target.value) })}
+                                      placeholder="50.000"
+                                      className="w-full px-3 py-2 rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100 font-mono"
+                                    />
+                                  )}
                                 </div>
                               )}
                               <div>
                                 <label className="block text-slate-400 font-bold mb-1">Đơn tối thiểu (VNĐ)</label>
                                 <input
-                                  type="number"
-                                  min="0"
-                                  value={voucherForm.min_order}
-                                  onChange={(e) => setVoucherForm({ ...voucherForm, min_order: e.target.value })}
-                                  className="w-full px-3 py-2 rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100"
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={formatVndInput(voucherForm.min_order)}
+                                  onChange={(e) => setVoucherForm({ ...voucherForm, min_order: parseVndInput(e.target.value) })}
+                                  placeholder="300.000"
+                                  className="w-full px-3 py-2 rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100 font-mono"
                                 />
                               </div>
                             </div>
