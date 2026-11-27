@@ -72,7 +72,7 @@
       if (localStorage.getItem('meocung_admin_theme') === 'light') {
         document.documentElement.classList.add('light-theme');
       }
-      const { useState, useEffect } = React;
+      const { useState, useEffect, useRef } = React;
       const INITIAL_POSTS = window.INITIAL_POSTS || [];
       const PAYLOAD_API_URL = "https://meocung-ecommerce-seven.vercel.app/api/admin";
       const STOREFRONT_URL = "https://meocung-ecommerce-seven.vercel.app";
@@ -645,6 +645,30 @@
         });
         const [siteSaving, setSiteSaving] = useState(false);
         const [cmsMenuOpen, setCmsMenuOpen] = useState(false);
+        const previewIframeRef = useRef(null);
+        const [previewDevice, setPreviewDevice] = useState('desktop');
+        const isCustomizerTab = ['site_logo', 'site_navbar', 'site_footer', 'page_home', 'page_product_detail', 'page_news'].includes(activeTab);
+
+        const getPreviewUrl = () => {
+          const base = window.location.hostname === 'localhost'
+            ? 'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app'
+            : 'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app';
+          if (activeTab === 'page_product_detail') return base + '/products/p_1795606037461';
+          if (activeTab === 'page_news') return base + '/tin-tuc';
+          return base + '/';
+        };
+
+        // Gửi Live Preview tức thì sang Storefront giống WordPress Customizer
+        useEffect(() => {
+          if (isCustomizerTab && previewIframeRef.current && previewIframeRef.current.contentWindow) {
+            try {
+              previewIframeRef.current.contentWindow.postMessage(
+                { type: 'MEOCUNG_LIVE_PREVIEW', settings: siteSettings },
+                '*'
+              );
+            } catch (_) {}
+          }
+        }, [siteSettings, isCustomizerTab]);
 
         const fetchSiteSettings = async () => {
           for (const url of getCmsApiCandidates('/api/admin/site-settings')) {
@@ -1288,8 +1312,10 @@
                 </div>
               </header>
 
-              {/* View Content */}
-              <div className="flex-1 overflow-auto p-6">
+              {/* View Content (Tự động chuyển Split-Screen WordPress Live Preview khi chỉnh giao diện) */}
+              <div className={isCustomizerTab ? 'flex-1 flex overflow-hidden' : 'flex-1 overflow-auto p-6'}>
+                <div className={isCustomizerTab ? 'w-[430px] xl:w-[470px] shrink-0 overflow-auto p-4 border-r border-[#27272a] bg-[#121214]' : 'w-full'}>
+
                 {/* 1. TAB SẢN PHẨM MEDUSA */}
                 {activeTab === 'products' && (
                   <div className="space-y-4 max-w-7xl mx-auto">
@@ -1963,16 +1989,37 @@
                             copy[nextIdx] = tmp;
                             setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, sections: copy } } });
                           };
+                          const isVisible = sec.visible !== false;
                           const toggleSec = () => {
-                            const copy = arr.map((item, i) => i === idx ? { ...item, visible: item.visible === false } : item);
-                            setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, sections: copy } } });
+                            setSiteSettings((prev) => {
+                              const curSecs = prev.pages_config?.home?.sections || arr;
+                              const nextSecs = curSecs.map((item, i) =>
+                                i === idx ? { ...item, visible: !(item.visible !== false) } : item
+                              );
+                              return {
+                                ...prev,
+                                pages_config: {
+                                  ...prev.pages_config,
+                                  home: { ...prev.pages_config?.home, sections: nextSecs }
+                                }
+                              };
+                            });
                           };
                           return (
                             <div key={sec.id} className="flex items-center justify-between p-3 rounded-lg bg-[#121214] border border-[#27272a]">
                               <div className="flex items-center gap-3">
-                                <input type="checkbox" checked={sec.visible !== false} onChange={toggleSec} className="w-4 h-4 accent-indigo-500 cursor-pointer" />
-                                <span className={`font-bold ${sec.visible !== false ? 'text-slate-100' : 'text-slate-500 line-through'}`}>{sec.label}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#27272a] text-slate-400">{sec.visible !== false ? 'Đang hiện' : 'Đang ẩn'}</span>
+                                <button
+                                  type="button"
+                                  onClick={toggleSec}
+                                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer border ${
+                                    isVisible
+                                      ? 'bg-emerald-950 text-emerald-400 border-emerald-700 hover:bg-emerald-900'
+                                      : 'bg-rose-950/60 text-rose-400 border-rose-800 hover:bg-rose-900/60'
+                                  }`}
+                                >
+                                  {isVisible ? '👁️ Đang hiện' : '🙈 Đã ẩn'}
+                                </button>
+                                <span className={`font-bold ${isVisible ? 'text-slate-100' : 'text-slate-500 line-through'}`}>{sec.label}</span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <button type="button" disabled={idx === 0} onClick={() => moveSec(-1)} className="px-2 py-1 bg-[#27272a] hover:bg-[#323238] disabled:opacity-30 rounded font-bold text-slate-200">▲ Lên</button>
@@ -2228,6 +2275,61 @@
                       </div>
                     </div>
                   </form>
+                )}
+
+                </div>
+
+                {isCustomizerTab && (
+                  <div className="flex-1 flex flex-col bg-[#09090b] overflow-hidden">
+                    {/* Thanh công cụ Live Preview giống WordPress */}
+                    <div className="h-11 px-4 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between text-xs shrink-0">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="font-bold text-slate-200">Xem Trước Trực Tiếp (WordPress Live Customizer)</span>
+                        <span className="text-[11px] text-slate-400 font-mono hidden xl:inline truncate max-w-xs">{getPreviewUrl()}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDevice('desktop')}
+                          className={`px-2.5 py-1 rounded font-bold ${previewDevice === 'desktop' ? 'bg-indigo-600 text-white' : 'bg-[#27272a] text-slate-300'}`}
+                        >🖥️ Máy tính</button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDevice('mobile')}
+                          className={`px-2.5 py-1 rounded font-bold ${previewDevice === 'mobile' ? 'bg-indigo-600 text-white' : 'bg-[#27272a] text-slate-300'}`}
+                        >📱 Điện thoại</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (previewIframeRef.current) {
+                              previewIframeRef.current.src = getPreviewUrl();
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded bg-[#27272a] hover:bg-[#323238] text-slate-200 font-bold"
+                        >🔄 Tải lại</button>
+                      </div>
+                    </div>
+
+                    {/* Khung hiển thị toàn bộ trang Web Storefront thật */}
+                    <div className="flex-1 overflow-auto flex justify-center bg-[#09090b] p-3">
+                      <iframe
+                        ref={previewIframeRef}
+                        src={getPreviewUrl()}
+                        onLoad={() => {
+                          if (previewIframeRef.current && previewIframeRef.current.contentWindow) {
+                            previewIframeRef.current.contentWindow.postMessage(
+                              { type: 'MEOCUNG_LIVE_PREVIEW', settings: siteSettings },
+                              '*'
+                            );
+                          }
+                        }}
+                        className={`bg-white rounded-xl shadow-2xl border border-[#27272a] transition-all duration-300 ${
+                          previewDevice === 'mobile' ? 'w-[390px] h-full' : 'w-full h-full'
+                        }`}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </main>
