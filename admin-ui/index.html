@@ -489,39 +489,39 @@
         // Load bài viết trực tiếp từ Payload REST API
         const fetchPayloadPosts = async () => {
           setPostsLoading(true);
-          try {
-            // Thử nạp qua API admin của storefront trước (có sẵn 100 bài từ DB)
-            let res = await fetch(`https://meocung-ecommerce-seven.vercel.app/api/admin/posts`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.docs && data.docs.length > 0) {
-                const formatted = data.docs.map(item => ({
-                  id: item.id,
-                  title: item.title,
-                  category: item.category || 'kinh-nghiem',
-                  summary: item.summary || (item.content ? item.content.replace(/<[^>]*>?/gm, '').slice(0, 120) + '...' : ''),
-                  coverImage: item.image || item.coverImage || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
-                  status: item.status || 'published'
-                }));
-                setPosts(formatted);
-                setPostsLoading(false);
-                return;
+          const endpoints = [
+            'https://meocung-ecommerce-seven.vercel.app/api/posts',
+            'http://localhost:3000/api/posts',
+            'https://meocung-payload.vercel.app/api/posts?limit=100'
+          ];
+
+          for (const url of endpoints) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.docs && data.docs.length > 0) {
+                  const formatted = data.docs.map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    category: item.category || 'kinh-nghiem',
+                    summary: item.summary || (item.content ? item.content.replace(/<[^>]*>?/gm, '').slice(0, 120) + '...' : ''),
+                    coverImage: item.coverImage || item.image || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800',
+                    status: item.status || 'published'
+                  }));
+                  setPosts(formatted);
+                  setPostsLoading(false);
+                  return;
+                }
               }
-            }
-            
-            // Fallback sang Payload backend direct API
-            res = await fetch(`https://meocung-payload.vercel.app/api/posts?limit=100`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.docs) {
-                setPosts(data.docs);
-              }
-            }
-          } catch (err) {
-            console.error('Fetch posts error:', err);
-          } finally {
-            setPostsLoading(false);
+            } catch (_) {}
           }
+
+          // Nếu tất cả API đều lag/chặn CORS, giữ nguyên danh sách 102 bài viết gốc đã có sẵn
+          if (!posts || posts.length === 0) {
+            setPosts(INITIAL_POSTS);
+          }
+          setPostsLoading(false);
         };
 
         useEffect(() => {
