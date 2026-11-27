@@ -222,6 +222,8 @@
         }
       ];
 
+      const INITIAL_POSTS = [];
+
       function SingleUnifiedDashboard() {
         const [activeTab, setActiveTab] = useState('products');
         
@@ -277,8 +279,8 @@
           const qs = params.toString() ? `?${params.toString()}` : '';
 
           const candidates = window.location.hostname === 'localhost'
-            ? ['http://localhost:3000/api/admin/customers', `${STOREFRONT_URL}/api/admin/customers`]
-            : [`${STOREFRONT_URL}/api/admin/customers`];
+            ? ['http://localhost:3000/api/admin/customers', 'https://meocung-ecommerce-atoan.vercel.app/api/admin/customers', `${STOREFRONT_URL}/api/admin/customers`]
+            : ['https://meocung-ecommerce-atoan.vercel.app/api/admin/customers', `${STOREFRONT_URL}/api/admin/customers`];
 
           for (const base of candidates) {
             try {
@@ -335,7 +337,7 @@
             if (!res.ok) return alert(data.error || 'Không thể lưu tài khoản!');
             setIsCustomerModalOpen(false);
             fetchCustomers();
-          } catch {
+          } catch (_e) {
             alert('Lỗi kết nối tới API Neon!');
           }
         };
@@ -349,7 +351,7 @@
               body: JSON.stringify({ status: nextStatus }),
             });
             if (res.ok) fetchCustomers();
-          } catch {}
+          } catch (_e) {}
         };
 
         const handleDeleteCustomer = async (c) => {
@@ -357,7 +359,7 @@
           try {
             const res = await fetch(`${customerApiBase}/${c.id}`, { method: 'DELETE' });
             if (res.ok) fetchCustomers();
-          } catch {}
+          } catch (_e) {}
         };
 
         // Quản lý đơn hàng & vận chuyển (lưu trực tiếp trên Neon PostgreSQL)
@@ -397,8 +399,8 @@
           const qs = params.toString() ? `?${params.toString()}` : '';
 
           const candidates = window.location.hostname === 'localhost'
-            ? ['http://localhost:3000/api/admin/orders', `${STOREFRONT_URL}/api/admin/orders`]
-            : [`${STOREFRONT_URL}/api/admin/orders`];
+            ? ['http://localhost:3000/api/admin/orders', 'https://meocung-ecommerce-atoan.vercel.app/api/admin/orders', `${STOREFRONT_URL}/api/admin/orders`]
+            : ['https://meocung-ecommerce-atoan.vercel.app/api/admin/orders', `${STOREFRONT_URL}/api/admin/orders`];
 
           for (const base of candidates) {
             try {
@@ -435,7 +437,7 @@
               body: JSON.stringify({ status: nextStatus }),
             });
             if (res.ok) fetchOrders();
-          } catch {}
+          } catch (_e) {}
         };
 
         const handleUpdateTracking = async (order) => {
@@ -448,7 +450,7 @@
               body: JSON.stringify({ tracking_code: code.trim() }),
             });
             if (res.ok) fetchOrders();
-          } catch {}
+          } catch (_e) {}
         };
 
         const handleDeleteOrder = async (order) => {
@@ -456,7 +458,7 @@
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, { method: 'DELETE' });
             if (res.ok) fetchOrders();
-          } catch {}
+          } catch (_e) {}
         };
 
         // Modal sản phẩm Medusa
@@ -1145,26 +1147,6 @@
                             </div>
                           );
                         })}
-                      </div>
-                      <div className="py-3.5 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-slate-100 text-sm">Lê Hoàng Nam • 0905 112 334</p>
-                          <p className="text-slate-400 text-[11px]">Cát Đậu Nành Cature Tofu Clumping 6L - Mã: ORD-9823</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-orange-400 text-sm">125.000 ₫</p>
-                          <span className="text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">Đang đóng gói</span>
-                        </div>
-                      </div>
-                      <div className="py-3.5 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-slate-100 text-sm">Phạm Quỳnh Nga • 0973 889 900</p>
-                          <p className="text-slate-400 text-[11px]">Hạt Catsrang Cho Mèo Mọi Lứa Tuổi (5kg) - Mã: ORD-9824</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-orange-400 text-sm">340.000 ₫</p>
-                          <span className="text-[10px] font-bold bg-purple-950 text-purple-400 border border-purple-800 px-2 py-0.5 rounded-full">Chờ xác nhận</span>
-                        </div>
                       </div>
                     </div>
                   </div>
