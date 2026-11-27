@@ -478,6 +478,45 @@
           status: 'published'
         });
 
+        // Upload ảnh từ máy lên Vercel Blob
+        const [uploadingTarget, setUploadingTarget] = useState(null);
+        const handleUploadImage = async (file, target) => {
+          if (!file) return;
+          setUploadingTarget(target);
+          const endpoints = window.location.hostname === 'localhost'
+            ? [
+                'http://localhost:3000/api/admin/upload',
+                'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app/api/admin/upload',
+                `${STOREFRONT_URL}/api/admin/upload`
+              ]
+            : [
+                'https://meocung-ecommerce-git-dev-trang-tranglibras-projects.vercel.app/api/admin/upload',
+                `${STOREFRONT_URL}/api/admin/upload`
+              ];
+
+          let lastErr = 'Không kết nối được API upload ảnh!';
+          for (const url of endpoints) {
+            try {
+              const fd = new FormData();
+              fd.append('file', file);
+              const res = await fetch(url, { method: 'POST', body: fd });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok && data && data.url) {
+                if (target === 'product') {
+                  setProductForm((prev) => ({ ...prev, image: data.url }));
+                } else {
+                  setPostForm((prev) => ({ ...prev, coverImage: data.url }));
+                }
+                setUploadingTarget(null);
+                return;
+              }
+              if (data && data.error) lastErr = data.error;
+            } catch (_) {}
+          }
+          setUploadingTarget(null);
+          alert('Upload ảnh thất bại: ' + lastErr);
+        };
+
         // Load bài viết trực tiếp từ Payload REST API
         const fetchPayloadPosts = async () => {
           setPostsLoading(true);
@@ -1471,13 +1510,32 @@
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh sản phẩm (Cloudflare R2 / S3)</label>
-                      <input
-                        type="url"
-                        value={productForm.image}
-                        onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                        className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
-                      />
+                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh sản phẩm (Vercel Blob)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={productForm.image}
+                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                          className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                        />
+                        <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200 transition-colors">
+                          {uploadingTarget === 'product' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingTarget === 'product'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadImage(file, 'product');
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {productForm.image && (
+                        <img src={productForm.image} alt="Preview" className="mt-2 h-16 w-16 rounded-lg object-cover border border-[#27272a]" />
+                      )}
                     </div>
 
                     <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
@@ -1551,13 +1609,32 @@
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh bìa bài viết</label>
-                      <input
-                        type="url"
-                        value={postForm.coverImage}
-                        onChange={(e) => setPostForm({ ...postForm, coverImage: e.target.value })}
-                        className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-indigo-500"
-                      />
+                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh bìa bài viết (Vercel Blob)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={postForm.coverImage}
+                          onChange={(e) => setPostForm({ ...postForm, coverImage: e.target.value })}
+                          className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-indigo-500"
+                        />
+                        <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200 transition-colors">
+                          {uploadingTarget === 'post' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingTarget === 'post'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadImage(file, 'post');
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {postForm.coverImage && (
+                        <img src={postForm.coverImage} alt="Preview" className="mt-2 h-16 w-24 rounded-lg object-cover border border-[#27272a]" />
+                      )}
                     </div>
 
                     <div className="pt-3 flex justify-end gap-2 border-t border-[#27272a]">
