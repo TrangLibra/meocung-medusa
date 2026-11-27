@@ -555,8 +555,32 @@
           ],
           footer_about: 'Mèo Cưng - Địa chỉ tin cậy chuyên cung cấp thức ăn hạt, pate dinh dưỡng, cát vệ sinh và cẩm nang nuôi dưỡng thú cưng hàng đầu tại TP. Hồ Chí Minh.',
           footer_copyright: 'Bản quyền thuộc về Mèo Cưng Storefront.',
+          pages_config: {
+            home: {
+              hero_badge: '🐾 Mèo Cưng Pet Shop TP.HCM',
+              hero_title: 'Thức Ăn & Cẩm Nang Chăm Sóc Mèo Cưng Hoàn Hảo',
+              hero_subtitle: 'Cung cấp các dòng thức ăn hạt, pate thơm ngon, cát vệ sinh cao cấp và toàn bộ kiến thức nuôi dưỡng mèo chuẩn khoa học cho các "sen"!',
+              hero_btn_text: 'Khám phá sản phẩm',
+              hero_btn_link: '/products',
+            },
+            product_detail: {
+              in_stock_text: 'Còn hàng',
+              add_cart_text: 'Thêm vào giỏ hàng',
+              buy_now_text: 'Mua ngay',
+              badge_shipping: 'Giao 2H TP.HCM',
+              badge_authentic: '100% Chính hãng',
+              badge_return: 'Đổi trả 7 ngày',
+            },
+            news_page: {
+              badge_text: 'PayloadCMS 3.0 Headless CMS',
+              title: 'Cẩm Nang Chăm Sóc Mèo & Tin Tức Mới',
+              subtitle: 'Tổng hợp 100+ kiến thức dinh dưỡng, cách phòng bệnh và cẩm nang nuôi dưỡng thú cưng chuẩn khoa học từ PayloadCMS',
+              read_more_text: 'Đọc tiếp',
+            },
+          },
         });
         const [siteSaving, setSiteSaving] = useState(false);
+        const [cmsMenuOpen, setCmsMenuOpen] = useState(false);
 
         const fetchSiteSettings = async () => {
           for (const url of getCmsApiCandidates('/api/admin/site-settings')) {
@@ -1045,17 +1069,51 @@
                         <span>Mã Giảm Giá & Voucher</span>
                       </button>
 
-                      <button
-                        onClick={() => setActiveTab('site_settings')}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
-                          activeTab === 'site_settings'
-                            ? 'bg-indigo-950/70 text-indigo-300 font-bold border border-indigo-700/50'
-                            : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
-                        }`}
-                      >
-                        <span>🎨</span>
-                        <span>Giao Diện & Nội Dung Web</span>
-                      </button>
+                      {/* Mục lớn ở ngoài, nhấp vào để xổ ra từng trang nhỏ lẻ bên trong */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setCmsMenuOpen((prev) => !prev)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                            ['site_logo', 'site_navbar', 'site_footer', 'page_home', 'page_product_detail', 'page_news'].includes(activeTab)
+                              ? 'bg-indigo-950/70 text-indigo-300 font-bold border border-indigo-700/50'
+                              : 'text-slate-300 hover:bg-[#202024] hover:text-slate-100'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span>🎨</span>
+                            <span>Tùy Chỉnh Trang Web</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400">{cmsMenuOpen ? '▾' : '▸'}</span>
+                        </button>
+
+                        {cmsMenuOpen && (
+                          <div className="mt-1 ml-3 pl-2.5 border-l border-[#27272a] space-y-0.5">
+                            {[
+                              { id: 'site_logo', icon: '🏷️', label: 'Logo & Thương Hiệu' },
+                              { id: 'site_navbar', icon: '🧭', label: 'Thanh Navbar & Thông Báo' },
+                              { id: 'site_footer', icon: '🦶', label: 'Chân Trang (Footer)' },
+                              { id: 'page_home', icon: '🏠', label: 'Trang Chủ (Hero)' },
+                              { id: 'page_product_detail', icon: '📦', label: 'Chi Tiết Sản Phẩm' },
+                              { id: 'page_news', icon: '📰', label: 'Trang Tin Tức' },
+                            ].map((sub) => (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => setActiveTab(sub.id)}
+                                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
+                                  activeTab === sub.id
+                                    ? 'bg-indigo-600/20 text-indigo-300 font-bold'
+                                    : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                                }`}
+                              >
+                                <span>{sub.icon}</span>
+                                <span className="truncate">{sub.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </nav>
@@ -1086,7 +1144,12 @@
                     {activeTab === 'posts' && 'PayloadCMS: Quản Trị Cẩm Nang Nuôi Mèo (Xem & Chỉnh Sửa Trực Tiếp)'}
                     {activeTab === 'banners' && 'PayloadCMS: Quản Lý Banner Trang Chủ & Khuyến Mãi'}
                     {activeTab === 'coupons' && 'PayloadCMS: Quản Lý Mã Giảm Giá & Voucher'}
-                    {activeTab === 'site_settings' && 'PayloadCMS: Tùy Chỉnh Logo, Navbar, Footer & Nội Dung Web'}
+                    {activeTab === 'site_logo' && 'PayloadCMS: Chỉnh Sửa Logo & Thương Hiệu'}
+                    {activeTab === 'site_navbar' && 'PayloadCMS: Chỉnh Sửa Thanh Navbar & Thông Báo'}
+                    {activeTab === 'site_footer' && 'PayloadCMS: Chỉnh Sửa Chân Trang (Footer) & Liên Hệ'}
+                    {activeTab === 'page_home' && 'PayloadCMS: Chỉnh Sửa Nội Dung Trang Chủ (Hero)'}
+                    {activeTab === 'page_product_detail' && 'PayloadCMS: Chỉnh Sửa Trang Chi Tiết Sản Phẩm'}
+                    {activeTab === 'page_news' && 'PayloadCMS: Chỉnh Sửa Trang Tin Tức & Cẩm Nang'}
                   </h2>
                   <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 100% Đồng Bộ 1 Giao Diện
@@ -1502,215 +1565,247 @@
                   </div>
                 )}
 
-                {/* 6. TAB TÙY CHỈNH GIAO DIỆN & NỘI DUNG WEB (LOGO, NAVBAR, FOOTER) */}
-                {activeTab === 'site_settings' && (
-                  <form onSubmit={handleSaveSiteSettings} className="space-y-6 max-w-5xl mx-auto">
+                {/* 6.1. LOGO & THƯƠNG HIỆU */}
+                {activeTab === 'site_logo' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-3xl mx-auto">
                     <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
                       <div>
-                        <h3 className="font-bold text-slate-100 text-sm">Tùy Chỉnh Thương Hiệu, Logo, Navbar & Footer Website</h3>
-                        <p className="text-xs text-slate-400">Mọi thay đổi được lưu thẳng vào Neon Database và cập nhật trực tiếp ra Storefront.</p>
+                        <h3 className="font-bold text-slate-100 text-sm">🏷️ Logo & Nhận Diện Thương Hiệu</h3>
+                        <p className="text-xs text-slate-400">Thay đổi Tên shop, Slogan, Màu chủ đạo và Ảnh Logo hiển thị trên Header & Footer.</p>
                       </div>
-                      <button
-                        type="submit"
-                        disabled={siteSaving}
-                        className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md transition-colors shrink-0"
-                      >
-                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Cấu Hình Website'}
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Logo'}
                       </button>
                     </div>
-
-                    {/* Khối 1: Logo & Thương hiệu */}
                     <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
-                      <h4 className="font-bold text-orange-400 uppercase tracking-wider">1. Logo & Nhận Diện Thương Hiệu</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Tên Shop / Thương hiệu</label>
-                          <input
-                            type="text"
-                            value={siteSettings.site_name}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, site_name: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="text" value={siteSettings.site_name} onChange={(e) => setSiteSettings({ ...siteSettings, site_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Slogan dưới Logo</label>
-                          <input
-                            type="text"
-                            value={siteSettings.tagline}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, tagline: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block font-bold text-slate-300 mb-1">Icon Emoji</label>
-                            <input
-                              type="text"
-                              value={siteSettings.logo_emoji}
-                              onChange={(e) => setSiteSettings({ ...siteSettings, logo_emoji: e.target.value })}
-                              className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 text-center"
-                            />
-                          </div>
-                          <div>
-                            <label className="block font-bold text-slate-300 mb-1">Màu chủ đạo</label>
-                            <input
-                              type="color"
-                              value={siteSettings.primary_color || '#ff7f5c'}
-                              onChange={(e) => setSiteSettings({ ...siteSettings, primary_color: e.target.value })}
-                              className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1"
-                            />
-                          </div>
+                          <input type="text" value={siteSettings.tagline} onChange={(e) => setSiteSettings({ ...siteSettings, tagline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                       </div>
-
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Icon Emoji mặc định</label>
+                          <input type="text" value={siteSettings.logo_emoji} onChange={(e) => setSiteSettings({ ...siteSettings, logo_emoji: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 text-center" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu chủ đạo Website</label>
+                          <input type="color" value={siteSettings.primary_color || '#ff7f5c'} onChange={(e) => setSiteSettings({ ...siteSettings, primary_color: e.target.value })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer p-1" />
+                        </div>
+                      </div>
                       <div>
-                        <label className="block font-bold text-slate-300 mb-1">Ảnh Logo riêng (để trống nếu dùng Icon Emoji)</label>
+                        <label className="block font-bold text-slate-300 mb-1">Ảnh Logo riêng (Vercel Blob)</label>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="url"
-                            value={siteSettings.logo_url || ''}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, logo_url: e.target.value })}
-                            placeholder="Dán URL ảnh logo hoặc bấm nút Chọn ảnh từ máy..."
-                            className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="url" value={siteSettings.logo_url || ''} onChange={(e) => setSiteSettings({ ...siteSettings, logo_url: e.target.value })} placeholder="Dán URL ảnh hoặc chọn từ máy..." className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                           <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200">
                             {uploadingTarget === 'logo' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleUploadImage(file, 'logo');
-                                e.target.value = '';
-                              }}
-                            />
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(f, 'logo'); e.target.value = ''; }} />
                           </label>
                         </div>
-                        {siteSettings.logo_url && (
-                          <img src={siteSettings.logo_url} alt="Logo Preview" className="mt-2 h-14 w-14 rounded-xl object-cover border border-[#27272a]" />
-                        )}
+                        {siteSettings.logo_url && <img src={siteSettings.logo_url} alt="Logo" className="mt-2 h-16 w-16 rounded-xl object-cover border border-[#27272a]" />}
                       </div>
                     </div>
+                  </form>
+                )}
 
-                    {/* Khối 2: Thanh thông báo & Menu Navbar */}
+                {/* 6.2. THANH NAVBAR & THÔNG BÁO */}
+                {activeTab === 'site_navbar' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🧭 Thanh Thông Báo & Menu Điều Hướng (Navbar)</h3>
+                        <p className="text-xs text-slate-400">Thêm, sửa tên, đổi đường dẫn hoặc xóa các mục trên thanh menu cam.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Navbar'}
+                      </button>
+                    </div>
                     <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
-                      <h4 className="font-bold text-indigo-400 uppercase tracking-wider">2. Thanh Thông Báo & Menu Điều Hướng (Navbar)</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Thông báo trên cùng (Top Notice)</label>
-                          <input
-                            type="text"
-                            value={siteSettings.top_notice}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, top_notice: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="text" value={siteSettings.top_notice} onChange={(e) => setSiteSettings({ ...siteSettings, top_notice: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Dòng chữ bên phải Navbar</label>
-                          <input
-                            type="text"
-                            value={siteSettings.shipping_badge}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, shipping_badge: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="text" value={siteSettings.shipping_badge} onChange={(e) => setSiteSettings({ ...siteSettings, shipping_badge: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                       </div>
-
-                      <div className="space-y-2">
+                      <div className="space-y-2 pt-2 border-t border-[#27272a]">
                         <div className="flex items-center justify-between">
-                          <label className="font-bold text-slate-300">Danh sách mục trên thanh Navbar</label>
-                          <button
-                            type="button"
-                            onClick={() => setSiteSettings({ ...siteSettings, navbar_links: [...(siteSettings.navbar_links || []), { label: 'Mục mới', href: '/products' }] })}
-                            className="px-2.5 py-1 bg-[#27272a] hover:bg-[#323238] text-indigo-300 font-bold rounded"
-                          >+ Thêm mục menu</button>
+                          <label className="font-bold text-slate-300">Danh sách mục Menu Navbar</label>
+                          <button type="button" onClick={() => setSiteSettings({ ...siteSettings, navbar_links: [...(siteSettings.navbar_links || []), { label: 'Mục mới', href: '/products' }] })} className="px-2.5 py-1 bg-[#27272a] hover:bg-[#323238] text-indigo-300 font-bold rounded">+ Thêm mục menu</button>
                         </div>
-                        <div className="space-y-2">
-                          {(siteSettings.navbar_links || []).map((nav, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={nav.label}
-                                placeholder="Tên hiển thị (VD: Thức ăn hạt)"
-                                onChange={(e) => {
-                                  const next = [...siteSettings.navbar_links];
-                                  next[idx] = { ...next[idx], label: e.target.value };
-                                  setSiteSettings({ ...siteSettings, navbar_links: next });
-                                }}
-                                className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-1.5 rounded-lg text-slate-100"
-                              />
-                              <input
-                                type="text"
-                                value={nav.href}
-                                placeholder="Đường dẫn (VD: /products)"
-                                onChange={(e) => {
-                                  const next = [...siteSettings.navbar_links];
-                                  next[idx] = { ...next[idx], href: e.target.value };
-                                  setSiteSettings({ ...siteSettings, navbar_links: next });
-                                }}
-                                className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-1.5 rounded-lg text-slate-300 font-mono"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setSiteSettings({ ...siteSettings, navbar_links: siteSettings.navbar_links.filter((_, i) => i !== idx) })}
-                                className="px-2.5 py-1.5 bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded-lg font-bold"
-                              >Xóa</button>
-                            </div>
-                          ))}
-                        </div>
+                        {(siteSettings.navbar_links || []).map((nav, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input type="text" value={nav.label} placeholder="Tên hiển thị" onChange={(e) => { const n = [...siteSettings.navbar_links]; n[idx] = { ...n[idx], label: e.target.value }; setSiteSettings({ ...siteSettings, navbar_links: n }); }} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-1.5 rounded-lg text-slate-100" />
+                            <input type="text" value={nav.href} placeholder="Đường dẫn (/products...)" onChange={(e) => { const n = [...siteSettings.navbar_links]; n[idx] = { ...n[idx], href: e.target.value }; setSiteSettings({ ...siteSettings, navbar_links: n }); }} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-1.5 rounded-lg text-slate-300 font-mono" />
+                            <button type="button" onClick={() => setSiteSettings({ ...siteSettings, navbar_links: siteSettings.navbar_links.filter((_, i) => i !== idx) })} className="px-2.5 py-1.5 bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded-lg font-bold">Xóa</button>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  </form>
+                )}
 
-                    {/* Khối 3: Footer & Thông tin liên hệ */}
+                {/* 6.3. CHÂN TRANG (FOOTER) */}
+                {activeTab === 'site_footer' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-3xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🦶 Chân Trang (Footer) & Thông Tin Liên Hệ</h3>
+                        <p className="text-xs text-slate-400">Chỉnh sửa Hotline, Địa chỉ, Facebook, Giới thiệu ngắn và dòng Copyright cuối trang.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Footer'}
+                      </button>
+                    </div>
                     <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
-                      <h4 className="font-bold text-emerald-400 uppercase tracking-wider">3. Chân Trang (Footer) & Liên Hệ</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Số Hotline</label>
-                          <input
-                            type="text"
-                            value={siteSettings.hotline}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, hotline: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="text" value={siteSettings.hotline} onChange={(e) => setSiteSettings({ ...siteSettings, hotline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Địa chỉ cửa hàng</label>
-                          <input
-                            type="text"
-                            value={siteSettings.address}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="text" value={siteSettings.address} onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Link Facebook</label>
-                          <input
-                            type="text"
-                            value={siteSettings.facebook_url}
-                            onChange={(e) => setSiteSettings({ ...siteSettings, facebook_url: e.target.value })}
-                            className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                          />
+                          <input type="text" value={siteSettings.facebook_url} onChange={(e) => setSiteSettings({ ...siteSettings, facebook_url: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
                       </div>
                       <div>
                         <label className="block font-bold text-slate-300 mb-1">Đoạn giới thiệu cửa hàng ở Footer</label>
-                        <textarea
-                          rows={2}
-                          value={siteSettings.footer_about}
-                          onChange={(e) => setSiteSettings({ ...siteSettings, footer_about: e.target.value })}
-                          className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                        />
+                        <textarea rows={3} value={siteSettings.footer_about} onChange={(e) => setSiteSettings({ ...siteSettings, footer_about: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                       </div>
                       <div>
-                        <label className="block font-bold text-slate-300 mb-1">Dòng bản quyền (Copyright) ở cuối trang</label>
-                        <input
-                          type="text"
-                          value={siteSettings.footer_copyright}
-                          onChange={(e) => setSiteSettings({ ...siteSettings, footer_copyright: e.target.value })}
-                          className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100"
-                        />
+                        <label className="block font-bold text-slate-300 mb-1">Dòng bản quyền (Copyright)</label>
+                        <input type="text" value={siteSettings.footer_copyright} onChange={(e) => setSiteSettings({ ...siteSettings, footer_copyright: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.4. TRANG CHỦ (HERO BANNER) */}
+                {activeTab === 'page_home' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-3xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">🏠 Nội Dung Trang Chủ (Hero Banner)</h3>
+                        <p className="text-xs text-slate-400">Tùy chỉnh chữ tiêu đề lớn, phụ đề và nút kêu gọi hành động trên đầu Trang chủ.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Trang Chủ'}
+                      </button>
+                    </div>
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Nhãn nhỏ trên đầu (Badge)</label>
+                        <input type="text" value={siteSettings.pages_config?.home?.hero_badge || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_badge: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Tiêu đề lớn Trang chủ</label>
+                        <input type="text" value={siteSettings.pages_config?.home?.hero_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Mô tả phụ đề</label>
+                        <textarea rows={3} value={siteSettings.pages_config?.home?.hero_subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ trên nút bấm</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.hero_btn_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_btn_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Đường dẫn khi bấm nút</label>
+                          <input type="text" value={siteSettings.pages_config?.home?.hero_btn_link || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_btn_link: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-300 font-mono" />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.5. TRANG CHI TIẾT SẢN PHẨM */}
+                {activeTab === 'page_product_detail' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-3xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">📦 Nội Dung Trang Chi Tiết Sản Phẩm</h3>
+                        <p className="text-xs text-slate-400">Chỉnh sửa chữ trên nút Mua hàng, trạng thái kho và 3 thẻ cam kết bảo hành dưới sản phẩm.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Chi Tiết SP'}
+                      </button>
+                    </div>
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Nhãn trạng thái kho</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.in_stock_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, in_stock_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ nút Thêm giỏ hàng</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.add_cart_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, add_cart_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ nút Mua ngay</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.buy_now_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, buy_now_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[#27272a]">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Cam kết 1 (Giao hàng)</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.badge_shipping || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, badge_shipping: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Cam kết 2 (Chất lượng)</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.badge_authentic || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, badge_authentic: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Cam kết 3 (Đổi trả)</label>
+                          <input type="text" value={siteSettings.pages_config?.product_detail?.badge_return || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, product_detail: { ...siteSettings.pages_config?.product_detail, badge_return: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                )}
+
+                {/* 6.6. TRANG TIN TỨC & CẨM NANG */}
+                {activeTab === 'page_news' && (
+                  <form onSubmit={handleSaveSiteSettings} className="space-y-5 max-w-3xl mx-auto">
+                    <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                      <div>
+                        <h3 className="font-bold text-slate-100 text-sm">📰 Nội Dung Trang Tin Tức & Cẩm Nang (/tin-tuc)</h3>
+                        <p className="text-xs text-slate-400">Chỉnh sửa tiêu đề banner, mô tả và nhãn trên trang danh sách tin tức mèo cưng.</p>
+                      </div>
+                      <button type="submit" disabled={siteSaving} className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shrink-0">
+                        {siteSaving ? '⏳ Đang lưu...' : '💾 Lưu Trang Tin Tức'}
+                      </button>
+                    </div>
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Nhãn nhỏ (Badge)</label>
+                          <input type="text" value={siteSettings.pages_config?.news_page?.badge_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, badge_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Chữ nút Đọc tiếp</label>
+                          <input type="text" value={siteSettings.pages_config?.news_page?.read_more_text || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, read_more_text: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Tiêu đề chính trang Tin Tức</label>
+                        <input type="text" value={siteSettings.pages_config?.news_page?.title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Mô tả ngắn trang Tin Tức</label>
+                        <textarea rows={2} value={siteSettings.pages_config?.news_page?.subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, news_page: { ...siteSettings.pages_config?.news_page, subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                       </div>
                     </div>
                   </form>
