@@ -471,6 +471,8 @@
           max_uses: '',
           expires_at: '',
           is_active: true,
+          apply_scope: 'all',
+          applicable_products: [],
         });
         const [voucherApiBase, setVoucherApiBase] = useState(
           window.location.hostname === 'localhost'
@@ -525,6 +527,8 @@
             max_uses: '',
             expires_at: '',
             is_active: true,
+            apply_scope: 'all',
+            applicable_products: [],
           });
           setIsVoucherModalOpen(true);
         };
@@ -540,12 +544,15 @@
             max_uses: '',
             expires_at: '',
             is_active: true,
+            apply_scope: 'all',
+            applicable_products: [],
           });
           setIsVoucherModalOpen(true);
         };
 
         const handleOpenEditVoucher = (v) => {
           setEditingVoucher(v);
+          const selectedProds = Array.isArray(v.applicable_products) ? v.applicable_products : [];
           setVoucherForm({
             code: v.code || '',
             title: v.title || '',
@@ -555,6 +562,8 @@
             max_uses: v.max_uses != null ? String(v.max_uses) : '',
             expires_at: v.expires_at ? v.expires_at.slice(0, 10) : '',
             is_active: v.is_active !== false,
+            apply_scope: selectedProds.length > 0 ? 'specific' : 'all',
+            applicable_products: selectedProds,
           });
           setIsVoucherModalOpen(true);
         };
@@ -573,6 +582,8 @@
               max_uses: voucherForm.max_uses ? Number(voucherForm.max_uses) : null,
               expires_at: voucherForm.expires_at || null,
               is_active: Boolean(voucherForm.is_active),
+              applicable_products:
+                voucherForm.apply_scope === 'specific' ? voucherForm.applicable_products : [],
             };
             const res = await fetch(url, {
               method,
@@ -1398,6 +1409,12 @@
                               </p>
                               <div className="text-[11px] text-slate-400 space-y-0.5">
                                 <p>Đơn tối thiểu: {Number(v.min_order || 0).toLocaleString('vi-VN')} ₫</p>
+                                <p>
+                                  Áp dụng:{' '}
+                                  {Array.isArray(v.applicable_products) && v.applicable_products.length > 0
+                                    ? `${v.applicable_products.length} sản phẩm được chọn`
+                                    : 'Tất cả sản phẩm'}
+                                </p>
                                 <p>Lượt dùng: {v.used_count || 0}{v.max_uses ? ` / ${v.max_uses}` : ' (Không giới hạn)'}</p>
                                 {v.expires_at && <p>Hết hạn: {new Date(v.expires_at).toLocaleDateString('vi-VN')}</p>}
                               </div>
@@ -1525,6 +1542,64 @@
                                 />
                               </div>
                             </div>
+
+                            {/* Chọn sản phẩm được áp dụng giảm giá */}
+                            <div className="space-y-2 pt-1">
+                              <label className="block text-slate-400 font-bold">Áp dụng cho sản phẩm</label>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setVoucherForm({ ...voucherForm, apply_scope: 'all', applicable_products: [] })}
+                                  className={`flex-1 py-1.5 px-2.5 rounded-lg border font-bold text-[11px] transition ${
+                                    voucherForm.apply_scope === 'all'
+                                      ? 'bg-orange-600 text-white border-orange-500'
+                                      : 'bg-[#121214] text-slate-400 border-[#3f3f46]'
+                                  }`}
+                                >
+                                  Tất cả sản phẩm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setVoucherForm({ ...voucherForm, apply_scope: 'specific' })}
+                                  className={`flex-1 py-1.5 px-2.5 rounded-lg border font-bold text-[11px] transition ${
+                                    voucherForm.apply_scope === 'specific'
+                                      ? 'bg-orange-600 text-white border-orange-500'
+                                      : 'bg-[#121214] text-slate-400 border-[#3f3f46]'
+                                  }`}
+                                >
+                                  Chọn sản phẩm ({voucherForm.applicable_products.length})
+                                </button>
+                              </div>
+
+                              {voucherForm.apply_scope === 'specific' && (
+                                <div className="max-h-36 overflow-y-auto rounded-lg bg-[#121214] border border-[#3f3f46] divide-y divide-[#27272a]">
+                                  {products.map((p) => {
+                                    const checked = voucherForm.applicable_products.includes(p.id);
+                                    return (
+                                      <label key={p.id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-[#18181b]">
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={() => {
+                                            const next = checked
+                                              ? voucherForm.applicable_products.filter((id) => id !== p.id)
+                                              : [...voucherForm.applicable_products, p.id];
+                                            setVoucherForm({ ...voucherForm, applicable_products: next });
+                                          }}
+                                          className="accent-orange-500"
+                                        />
+                                        <img src={p.image} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+                                        <span className="text-[11px] text-slate-200 truncate flex-1">{p.name}</span>
+                                        <span className="text-[10px] text-orange-400 font-bold shrink-0">
+                                          {Number(p.price || 0).toLocaleString('vi-VN')} ₫
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
                             <div className="flex justify-end gap-2 pt-2">
                               <button type="button" onClick={() => setIsVoucherModalOpen(false)} className="px-4 py-2 rounded-lg bg-[#27272a] text-slate-300 font-bold">
                                 Hủy
