@@ -1905,11 +1905,13 @@
                       <div>
                         <label className="block font-bold text-slate-300 uppercase mb-1">Giá bán (VNĐ) *</label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           required
-                          value={productForm.price}
-                          onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
-                          className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg font-bold text-orange-400 outline-none focus:border-orange-500"
+                          value={formatVndInput(productForm.price)}
+                          onChange={(e) => setProductForm({ ...productForm, price: parseVndInput(e.target.value) })}
+                          placeholder="300.000"
+                          className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg font-bold font-mono text-orange-400 outline-none focus:border-orange-500"
                         />
                       </div>
 
