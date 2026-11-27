@@ -892,8 +892,14 @@
           setIsPostModalOpen(true);
         };
 
-        const handleDeletePost = (id) => {
+        const handleDeletePost = async (id) => {
           if (!confirm('Xác nhận xóa bài viết này khỏi cẩm nang?')) return;
+          for (const url of getCmsApiCandidates('/api/posts?id=' + id)) {
+            try {
+              const res = await fetch(url, { method: 'DELETE' });
+              if (res.ok) break;
+            } catch (_) {}
+          }
           setPosts(posts.filter(p => p.id !== id));
         };
 
@@ -901,43 +907,39 @@
           e.preventDefault();
           if (!postForm.title.trim()) return alert('Vui lòng nhập tiêu đề bài viết!');
 
-          try {
-            // Gửi API lưu bài viết trực tiếp vào cơ sở dữ liệu PostgreSQL Neon
-            const res = await fetch('https://meocung-ecommerce-seven.vercel.app/api/posts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(postForm)
-            });
+          const isEdit = Boolean(editingPost);
+          const method = isEdit ? 'PUT' : 'POST';
+          const payload = isEdit ? { id: editingPost.id, ...postForm } : postForm;
 
-            if (res.ok) {
-              const data = await res.json();
-              const savedDoc = data.doc || {
-                id: Date.now(),
-                ...postForm,
-                publishedAt: new Date().toISOString()
-              };
-              setPosts([savedDoc, ...posts]);
-            } else {
-              // Fallback cập nhật UI
-              const newPost = {
-                id: Date.now(),
-                ...postForm,
-                publishedAt: new Date().toISOString()
-              };
-              setPosts([newPost, ...posts]);
-            }
-          } catch (err) {
-            console.error('Error saving post to DB:', err);
-            const newPost = {
-              id: Date.now(),
-              ...postForm,
-              publishedAt: new Date().toISOString()
-            };
-            setPosts([newPost, ...posts]);
+          let savedDoc = null;
+          for (const url of getCmsApiCandidates('/api/posts')) {
+            try {
+              const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.doc) {
+                  savedDoc = data.doc;
+                  break;
+                }
+              }
+            } catch (_) {}
           }
 
+          if (isEdit) {
+            const updatedItem = savedDoc || { ...editingPost, ...postForm };
+            setPosts(posts.map(p => p.id === editingPost.id ? updatedItem : p));
+          } else {
+            const newItem = savedDoc || { id: Date.now(), ...postForm, publishedAt: new Date().toISOString() };
+            setPosts([newItem, ...posts]);
+          }
+
+          setEditingPost(null);
           setIsPostModalOpen(false);
-          alert('Đã lưu bài viết thành công vào cơ sở dữ liệu!');
+          alert(isEdit ? 'Đã cập nhật bài viết thành công!' : 'Đã thêm bài viết mới thành công vào cơ sở dữ liệu!');
         };
 
         const filteredProducts = products.filter(p =>
