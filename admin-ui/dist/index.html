@@ -323,7 +323,7 @@
 
         const handleBulkDeleteProducts = async () => {
           if (selectedProductIds.length === 0) return;
-          if (!confirm(`Xác nhận xóa ${selectedProductIds.length} sản phẩm đã chọn khỏi kho hàng?`)) return;
+          if (!(await window.catConfirm(`Xác nhận xóa ${selectedProductIds.length} sản phẩm đã chọn khỏi kho hàng?`))) return;
           await Promise.all(selectedProductIds.map((id) =>
             fetch(`${getCmsApiCandidates('/api/medusa/products')[0]}?id=${id}`, { method: 'DELETE' }).catch(() => {})
           ));
@@ -459,7 +459,7 @@
         };
 
         const handleDeleteCustomer = async (c) => {
-          if (!confirm(`Xóa vĩnh viễn tài khoản ${c.email}?`)) return;
+          if (!(await window.catConfirm(`Xóa vĩnh viễn tài khoản ${c.email}?`))) return;
           try {
             const res = await fetch(`${customerApiBase}/${c.id}`, { method: 'DELETE' });
             if (res.ok) fetchCustomers();
@@ -647,7 +647,7 @@
         };
 
         const handleDeleteCommerceRule = async (id) => {
-          if (!confirm('Xóa quy tắc này?')) return;
+          if (!(await window.catConfirm('Xóa quy tắc này?'))) return;
           for (const url of getCmsApiCandidates(`/api/admin/commerce-rules?id=${id}`)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -661,7 +661,7 @@
           const cat = sale.config?.target_category || 'all';
           const targets = products.filter((p) => cat === 'all' || p.category === cat);
           if (!targets.length) return alert('Không có sản phẩm nào thuộc danh mục này.');
-          if (!confirm(`Áp dụng giảm ${pct}% lên ${targets.length} sản phẩm trong danh mục "${cat}" và lưu?`)) return;
+          if (!(await window.catConfirm(`Áp dụng giảm ${pct}% lên ${targets.length} sản phẩm trong danh mục "${cat}" và lưu?`))) return;
           await Promise.all(targets.map((p) => {
             const orig = Number(p.originalPrice || p.price || 150000);
             const nextPrice = Math.max(1000, Math.round((orig * (1 - pct / 100)) / 1000) * 1000);
@@ -736,7 +736,7 @@
         };
 
         const handleDeleteOrder = async (order) => {
-          if (!confirm(`Xóa đơn hàng #${order.order_code}?`)) return;
+          if (!(await window.catConfirm(`Xóa đơn hàng #${order.order_code}?`))) return;
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, { method: 'DELETE' });
             if (res.ok) fetchOrders();
@@ -900,7 +900,7 @@
         };
 
         const handleDeleteVoucher = async (v) => {
-          if (!confirm(`Xóa mã voucher ${v.code}?`)) return;
+          if (!(await window.catConfirm(`Xóa mã voucher ${v.code}?`))) return;
           try {
             const res = await fetch(`${voucherApiBase}/${v.id}`, { method: 'DELETE' });
             if (res.ok) fetchVouchers();
@@ -1210,7 +1210,7 @@
         };
 
         const handleDeleteBanner = async (id) => {
-          if (!confirm('Xóa banner này?')) return;
+          if (!(await window.catConfirm('Xóa banner này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/banners?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1267,7 +1267,7 @@
         };
 
         const handleDeleteCoupon = async (id) => {
-          if (!confirm('Xóa mã giảm giá này?')) return;
+          if (!(await window.catConfirm('Xóa mã giảm giá này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/coupons?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1349,7 +1349,7 @@
         };
 
         const handleDeleteStaff = async (id) => {
-          if (!confirm('Xóa tài khoản nhân viên này?')) return;
+          if (!(await window.catConfirm('Xóa tài khoản nhân viên này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/staff?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1406,7 +1406,7 @@
         };
 
         const handleDeleteRole = async (id) => {
-          if (!confirm('Xóa vai trò phân quyền này?')) return;
+          if (!(await window.catConfirm('Xóa vai trò phân quyền này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/roles?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1515,7 +1515,7 @@
         };
 
         const handleDeleteCategory = async (id) => {
-          if (!confirm('Xóa danh mục này khỏi Database?')) return;
+          if (!(await window.catConfirm('Xóa danh mục này khỏi Database?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/categories?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1559,7 +1559,7 @@
         };
 
         const handleDeleteCollection = async (id) => {
-          if (!confirm('Xóa bộ sưu tập này?')) return;
+          if (!(await window.catConfirm('Xóa bộ sưu tập này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/collections?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1597,7 +1597,7 @@
         };
 
         const handleDeleteReview = async (id) => {
-          if (!confirm('Xóa đánh giá này?')) return;
+          if (!(await window.catConfirm('Xóa đánh giá này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/reviews?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1762,7 +1762,7 @@
         };
 
         const handleDeleteProduct = async (id) => {
-          if (!confirm('Xác nhận xóa sản phẩm khỏi kho hàng?')) return;
+          if (!(await window.catConfirm('Xác nhận xóa sản phẩm khỏi kho hàng?'))) return;
           const targetProd = products.find(p => p.id === id);
           try {
             await fetch(`https://meocung-ecommerce-seven.vercel.app/api/medusa/products?id=${id}`, {
@@ -1860,7 +1860,7 @@
         };
 
         const handleDeletePost = async (id) => {
-          if (!confirm('Xác nhận xóa bài viết này khỏi cẩm nang?')) return;
+          if (!(await window.catConfirm('Xác nhận xóa bài viết này khỏi cẩm nang?'))) return;
           for (const url of getCmsApiCandidates('/api/posts?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -1920,6 +1920,9 @@
         const [sidebarOpen, setSidebarOpen] = useState(true);
         const [auditLogs, setAuditLogs] = useState([]);
         const [selectedAuditLog, setSelectedAuditLog] = useState(null);
+        const [auditSearch, setAuditSearch] = useState('');
+        const [auditFromDate, setAuditFromDate] = useState('');
+        const [auditToDate, setAuditToDate] = useState('');
 
         // Tự động làm mới dữ liệu khi AI thao tác, khi quay lại tab, hoặc định kỳ 15s (không cần F5)
         useEffect(() => {
@@ -2462,21 +2465,77 @@
                 <div className={isCustomizerTab ? 'w-[430px] xl:w-[470px] shrink-0 overflow-auto p-4 border-r border-[#27272a] bg-[#121214]' : 'w-full'}>
 
                 {/* 0. TAB TỔNG QUAN DOANH THU & DỮ LIỆU THẬT */}
-                {activeTab === 'audit_logs' && (
+                {activeTab === 'audit_logs' && (() => {
+                  const q = auditSearch.trim().toLowerCase();
+                  const filteredAuditLogs = auditLogs.filter((log) => {
+                    if (q) {
+                      const hay = `${log.actor || ''} ${log.action || ''} ${log.target || ''} ${log.detail || ''}`.toLowerCase();
+                      if (!hay.includes(q)) return false;
+                    }
+                    if (auditFromDate) {
+                      const fromTs = new Date(`${auditFromDate}T00:00:00`).getTime();
+                      if (new Date(log.created_at).getTime() < fromTs) return false;
+                    }
+                    if (auditToDate) {
+                      const toTs = new Date(`${auditToDate}T23:59:59.999`).getTime();
+                      if (new Date(log.created_at).getTime() > toTs) return false;
+                    }
+                    return true;
+                  });
+                  return (
                   <div className="space-y-4">
                     <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                         <div>
                           <h3 className="text-sm font-bold text-slate-100">📜 Nhật Ký Hoạt Động Admin</h3>
                           <p className="text-xs text-slate-400 mt-0.5">Tự động ghi lại mọi thao tác thêm, sửa, xóa sản phẩm, đơn hàng, voucher và nhập Excel.</p>
                         </div>
                         <span className="text-xs font-bold text-orange-400 bg-orange-950/50 border border-orange-800/40 px-3 py-1 rounded-full">
-                          {auditLogs.length} hoạt động gần nhất
+                          {filteredAuditLogs.length} / {auditLogs.length} hoạt động
                         </span>
                       </div>
-                      {auditLogs.length === 0 ? (
+
+                      {/* Thanh lọc theo tên & khoảng ngày */}
+                      <div className="flex flex-wrap items-center gap-2.5 mb-4 p-3 rounded-xl bg-[#121214] border border-[#27272a] text-xs">
+                        <input
+                          type="text"
+                          value={auditSearch}
+                          onChange={(e) => setAuditSearch(e.target.value)}
+                          placeholder="🔍 Lọc theo tên người thực hiện, sản phẩm, hành động..."
+                          className="flex-1 min-w-[200px] bg-[#18181b] border border-[#3f3f46] px-3 py-1.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-400 font-semibold">Từ ngày:</span>
+                          <input
+                            type="date"
+                            value={auditFromDate}
+                            onChange={(e) => setAuditFromDate(e.target.value)}
+                            className="bg-[#18181b] border border-[#3f3f46] px-2.5 py-1.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-400 font-semibold">Đến ngày:</span>
+                          <input
+                            type="date"
+                            value={auditToDate}
+                            onChange={(e) => setAuditToDate(e.target.value)}
+                            className="bg-[#18181b] border border-[#3f3f46] px-2.5 py-1.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                          />
+                        </div>
+                        {(auditSearch || auditFromDate || auditToDate) && (
+                          <button
+                            type="button"
+                            onClick={() => { setAuditSearch(''); setAuditFromDate(''); setAuditToDate(''); }}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#27272a] hover:bg-[#323238] text-rose-400 font-bold"
+                          >
+                            ✕ Xóa lọc
+                          </button>
+                        )}
+                      </div>
+
+                      {filteredAuditLogs.length === 0 ? (
                         <div className="py-12 text-center text-xs text-slate-400">
-                          Chưa có nhật ký hoạt động nào. Hãy thử thêm/sửa/xóa sản phẩm hoặc nhập Excel qua Trợ lý AI!
+                          Không có hoạt động nào khớp với bộ lọc hiện tại.
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
@@ -2491,7 +2550,7 @@
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#27272a]">
-                              {auditLogs.map((log) => (
+                              {filteredAuditLogs.map((log) => (
                                 <tr
                                   key={log.id}
                                   onClick={() => setSelectedAuditLog(log)}
@@ -2609,7 +2668,8 @@
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
                 {activeTab === 'overview' && (
                   <div className="space-y-6 max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -4755,16 +4815,22 @@
 
             {/* MODAL SẢN PHẨM MEDUSA */}
             {isProductModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-                <div className="bg-[#18181b] rounded-2xl max-w-lg w-full shadow-2xl border border-[#27272a] overflow-hidden">
-                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+              <div
+                onClick={() => setIsProductModalOpen(false)}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4"
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-[#18181b] rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#27272a] overflow-hidden"
+                >
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between shrink-0">
                     <h3 className="font-bold text-sm text-slate-100">
                       {editingProduct ? 'Chỉnh Sửa Sản Phẩm Pet Shop' : 'Thêm Sản Phẩm Mới Vào Kho'}
                     </h3>
                     <button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
                   </div>
 
-                  <form onSubmit={handleSaveProduct} className="p-5 space-y-3.5 text-xs">
+                  <form onSubmit={handleSaveProduct} className="p-5 space-y-3.5 text-xs flex-1 overflow-y-auto">
                     <div>
                       <label className="block font-bold text-slate-300 uppercase mb-1">Tên sản phẩm *</label>
                       <input
@@ -4829,11 +4895,11 @@
                       </div>
                     </div>
 
-                    {/* PHÂN LOẠI SIZE (S / M / L / XL / XXL) */}
-                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2">
+                    {/* PHÂN LOẠI SIZE & NHẬP KHỐI LƯỢNG TÙY CHỌN */}
+                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <label className="font-bold text-orange-300 uppercase text-[11px]">📏 Phân loại Size (S / M / L / XL / XXL)</label>
-                        <span className="text-[10px] text-slate-400">Chọn nhanh để tự tạo biến thể theo size</span>
+                        <label className="font-bold text-orange-300 uppercase text-[11px]">📏 Phân loại Size & ⚖️ Khối lượng (Tùy chọn)</label>
+                        <span className="text-[10px] text-slate-400">Bỏ trống nếu sản phẩm không chia loại</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {['S', 'M', 'L', 'XL', 'XXL'].map((sz) => {
@@ -4854,15 +4920,46 @@
                           );
                         })}
                       </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="text"
+                          value={productForm.customVariantInput || ''}
+                          onChange={(e) => setProductForm({ ...productForm, customVariantInput: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const v = (productForm.customVariantInput || '').trim();
+                              if (v) {
+                                handleToggleProductSize(v);
+                                setProductForm((prev) => ({ ...prev, customVariantInput: '' }));
+                              }
+                            }
+                          }}
+                          placeholder="Nhập khối lượng hoặc phân loại (VD: 500g, 1kg, 2kg, 6L...) rồi bấm + Thêm"
+                          className="flex-1 bg-[#18181b] border border-[#3f3f46] px-2.5 py-1.5 rounded-lg text-xs text-slate-100 outline-none focus:border-orange-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const v = (productForm.customVariantInput || '').trim();
+                            if (!v) return;
+                            handleToggleProductSize(v);
+                            setProductForm((prev) => ({ ...prev, customVariantInput: '' }));
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shrink-0"
+                        >
+                          + Thêm
+                        </button>
+                      </div>
                     </div>
 
                     {/* NHÓM 3 (SALEOR CATALOG): BIẾN THỂ SẢN PHẨM (VARIANTS) & THUỘC TÍNH LỌC (ATTRIBUTES) */}
                     <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="font-bold text-indigo-300 uppercase text-[11px]">🧬 Biến thể sản phẩm (SKU / Khối lượng / Hương vị)</label>
+                        <label className="font-bold text-indigo-300 uppercase text-[11px]">🧬 Biến thể sản phẩm (Size / Khối lượng / SKU / Giá / Kho)</label>
                         <button
                           type="button"
-                          onClick={() => setProductForm({ ...productForm, variants: [...(productForm.variants || []), { title: '', sku: '', price: Number(productForm.price || 150000), inventory: 50 }] })}
+                          onClick={() => setProductForm({ ...productForm, variants: [...(productForm.variants || []), { title: '', weight: '', sku: '', price: Number(productForm.price || 150000), inventory: 50 }] })}
                           className="px-2 py-1 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60 font-bold text-[10px]"
                         >
                           + Thêm biến thể
@@ -4870,8 +4967,9 @@
                       </div>
                       {(productForm.variants || []).map((v, idx) => (
                         <div key={idx} className="grid grid-cols-12 gap-1.5 items-center">
-                          <input type="text" placeholder="Tên (VD: Túi 2kg)" value={v.title || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, title: e.target.value } : x) })} className="col-span-4 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100" />
-                          <input type="text" placeholder="SKU" value={v.sku || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, sku: e.target.value } : x) })} className="col-span-3 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100 font-mono" />
+                          <input type="text" placeholder="Tên (Size S...)" value={v.title || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, title: e.target.value } : x) })} className="col-span-3 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100" />
+                          <input type="text" placeholder="Khối lượng" value={v.weight || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, weight: e.target.value } : x) })} className="col-span-2 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100" />
+                          <input type="text" placeholder="SKU" value={v.sku || ''} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, sku: e.target.value } : x) })} className="col-span-2 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-slate-100 font-mono" />
                           <input type="number" placeholder="Giá" value={v.price || 0} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, price: Number(e.target.value) } : x) })} className="col-span-2 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-orange-400 font-bold" />
                           <input type="number" placeholder="Kho" value={v.inventory || 0} onChange={(e) => setProductForm({ ...productForm, variants: productForm.variants.map((x, i) => i === idx ? { ...x, inventory: Number(e.target.value) } : x) })} className="col-span-2 bg-[#18181b] border border-[#3f3f46] px-2 py-1.5 rounded text-emerald-400" />
                           <button type="button" onClick={() => setProductForm({ ...productForm, variants: productForm.variants.filter((_, i) => i !== idx) })} className="col-span-1 text-rose-400 font-bold text-center">✕</button>
@@ -6039,8 +6137,76 @@
         );
       }
 
+      function CatDialogHost() {
+        const [dlg, setDlg] = useState(null);
+
+        useEffect(() => {
+          window.__catAlert = (msg) => {
+            setDlg({ mode: 'alert', message: String(msg || ''), resolve: null });
+          };
+          window.alert = (msg) => {
+            window.__catAlert(msg);
+          };
+          window.catConfirm = (msg) =>
+            new Promise((resolve) => {
+              setDlg({ mode: 'confirm', message: String(msg || ''), resolve });
+            });
+        }, []);
+
+        if (!dlg) return null;
+
+        const closeWith = (val) => {
+          const fn = dlg.resolve;
+          setDlg(null);
+          if (fn) fn(val);
+        };
+
+        return (
+          <div
+            onClick={() => closeWith(false)}
+            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-3xl bg-white border-2 border-orange-200 shadow-2xl p-6 text-center space-y-4"
+            >
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center text-3xl shadow-sm">
+                🐱
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-base font-extrabold text-slate-900">
+                  {dlg.mode === 'confirm' ? 'Xác nhận thao tác' : 'Thông báo Mèo Cưng'}
+                </h4>
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{dlg.message}</p>
+              </div>
+              <div className="flex items-center justify-center gap-2.5 pt-2">
+                {dlg.mode === 'confirm' && (
+                  <button
+                    type="button"
+                    onClick={() => closeWith(false)}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                  >
+                    Hủy
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => closeWith(true)}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-md shadow-orange-200 transition-all"
+                >
+                  {dlg.mode === 'confirm' ? 'Đồng ý' : 'Đã hiểu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       ReactDOM.createRoot(document.getElementById('root')).render(
-        <SingleUnifiedDashboard />
+        <React.Fragment>
+          <SingleUnifiedDashboard />
+          <CatDialogHost />
+        </React.Fragment>
       );
     </script>
 </body>
