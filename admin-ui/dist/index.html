@@ -634,8 +634,6 @@
         };
 
         const handleToggleCommerceRule = async (rule) => {
-          const prevRules = commerceRules;
-          setCommerceRules((prev) => prev.map((r) => r.id === rule.id ? { ...r, is_active: !r.is_active } : r));
           for (const url of getCmsApiCandidates('/api/admin/commerce-rules')) {
             try {
               const res = await fetch(url, {
@@ -643,24 +641,19 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: rule.id, is_active: !rule.is_active }),
               });
-              if (res.ok) return;
+              if (res.ok) { fetchCommerceRules(); return; }
             } catch (_) {}
           }
-          setCommerceRules(prevRules);
         };
 
         const handleDeleteCommerceRule = async (id) => {
-          if (!(await window.catConfirm('Xóa (soft delete) quy tắc này?'))) return;
-          const prevRules = commerceRules;
-          setCommerceRules((prev) => prev.filter((r) => r.id !== id));
+          if (!(await window.catConfirm('Xóa quy tắc này?'))) return;
           for (const url of getCmsApiCandidates(`/api/admin/commerce-rules?id=${id}`)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
-              if (res.ok) return;
+              if (res.ok) { fetchCommerceRules(); return; }
             } catch (_) {}
           }
-          setCommerceRules(prevRules);
-          alert('Không thể xóa quy tắc, đã khôi phục lại.');
         };
 
         const handleApplyFlashSaleToProducts = async (sale) => {
@@ -675,239 +668,6 @@
             return handleQuickUpdateProductField(p, { originalPrice: orig, price: nextPrice });
           }));
           alert(`Đã áp dụng Flash Sale -${pct}% cho ${targets.length} sản phẩm!`);
-        };
-
-        // ĐĂNG NHẬP ADMIN + PHÂN QUYỀN RBAC + CÀI ĐẶT HỆ THỐNG (SETTINGS)
-        const [adminUser, setAdminUser] = useState(() => {
-          try {
-            const saved = localStorage.getItem('meocung_admin_user');
-            return saved ? JSON.parse(saved) : null;
-          } catch (_) { return null; }
-        });
-        const [loginEmail, setLoginEmail] = useState('admin@gmail.com');
-        const [loginPassword, setLoginPassword] = useState('');
-        const [loginLoading, setLoginLoading] = useState(false);
-        const [loginError, setLoginError] = useState('');
-
-        const [sysSettings, setSysSettings] = useState({
-          store_name: 'Mèo Cưng Pet Shop',
-          support_email: 'hotro@meocung.vn',
-          support_hotline: '0382 542 737',
-          warehouse_address: '123 Cầu Giấy, Hà Nội',
-          currency: 'VND',
-          tax_percent: 0,
-          low_stock_threshold: 10,
-          enable_cod: true,
-          enable_bank_qr: true,
-          bank_name: 'Vietcombank',
-          bank_account_no: '',
-          bank_account_name: 'MEO CUNG PET SHOP',
-          notify_new_order_email: true,
-          auto_confirm_order: false,
-          order_prefix: 'MC-',
-          min_order_value: 50000,
-          max_cod_amount: 5000000,
-          auto_cancel_unpaid_hours: 24,
-          allow_guest_checkout: true,
-          default_shipping_carrier: 'GHN',
-          default_package_weight_g: 500,
-          free_ship_global_threshold: 300000,
-          enable_express_2h: true,
-          meta_title_suffix: ' | Mèo Cưng Pet Shop',
-          items_per_page: 20,
-          enable_ai_chatbot: true,
-          maintenance_mode: false,
-          maintenance_message: 'Hệ thống đang bảo trì nâng cấp định kỳ, quý khách vui lòng quay lại sau ít phút!',
-        });
-        const [sysSaving, setSysSaving] = useState(false);
-        const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
-        const [profileForm, setProfileForm] = useState({ full_name: '', phone: '', avatar_url: '', job_title: '' });
-        const [profileSaving, setProfileSaving] = useState(false);
-
-        useEffect(() => {
-          if (adminUser) {
-            setProfileForm({
-              full_name: adminUser.full_name || '',
-              phone: adminUser.phone || '',
-              avatar_url: adminUser.avatar_url || '',
-              job_title: adminUser.job_title || '',
-            });
-          }
-        }, [adminUser]);
-
-        const TAB_PERMISSION_MAP = {
-          overview: 'overview',
-          products: 'products',
-          categories: 'products',
-          collections: 'products',
-          price_lists: 'products',
-          reviews: 'products',
-          flash_sales: 'products',
-          inventory: 'inventory',
-          orders: 'orders',
-          shipping_zones: 'orders',
-          customers: 'customers',
-          staff: 'staff',
-          roles: 'staff',
-          posts: 'posts',
-          banners: 'posts',
-          coupons: 'posts',
-          site_logo: 'theme',
-          site_navbar: 'theme',
-          site_footer: 'theme',
-          page_home: 'theme',
-          page_product_detail: 'theme',
-          page_news: 'theme',
-          settings: 'settings',
-          profile: 'profile',
-        };
-
-        const canPerm = (mod, action = 'view') => {
-          if (!adminUser) return false;
-          if (adminUser.role === 'admin') return true;
-          if (mod === 'profile' || mod === 'overview') return true;
-          return Boolean(adminUser.permissions?.[mod]?.[action]);
-        };
-
-        const canViewTab = (tab) => canPerm(TAB_PERMISSION_MAP[tab] || 'settings', 'view');
-
-        const safeSetActiveTab = (tab) => {
-          if (!canViewTab(tab)) {
-            alert('Bạn không có quyền truy cập phân hệ này!');
-            return;
-          }
-          setActiveTab(tab);
-        };
-
-        useEffect(() => {
-          if (adminUser && !canViewTab(activeTab)) {
-            const firstAllowed = ['products', 'inventory', 'orders', 'customers', 'posts', 'page_home', 'overview', 'profile'].find((t) => canViewTab(t));
-            if (firstAllowed && firstAllowed !== activeTab) setActiveTab(firstAllowed);
-          }
-        }, [adminUser, activeTab]);
-
-        const handleSaveProfile = async (e) => {
-          e.preventDefault();
-          if (!adminUser?.email) return;
-          setProfileSaving(true);
-          for (const url of getCmsApiCandidates('/api/admin/auth')) {
-            try {
-              const res = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: adminUser.email, ...profileForm }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (res.ok && data.profile) {
-                const updated = { ...adminUser, ...data.profile };
-                localStorage.setItem('meocung_admin_user', JSON.stringify(updated));
-                setAdminUser(updated);
-                setProfileSaving(false);
-                alert('Đã cập nhật thông tin tài khoản cá nhân!');
-                return;
-              }
-            } catch (_) {}
-          }
-          setProfileSaving(false);
-          alert('Không thể cập nhật hồ sơ.');
-        };
-
-        const handleAdminLogin = async (e) => {
-          e.preventDefault();
-          setLoginLoading(true);
-          setLoginError('');
-          let lastErr = 'Không thể kết nối máy chủ xác thực';
-          for (const url of getCmsApiCandidates('/api/admin/auth')) {
-            try {
-              const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (res.ok && data.user) {
-                localStorage.setItem('meocung_admin_user', JSON.stringify(data.user));
-                setAdminUser(data.user);
-                setLoginPassword('');
-                setLoginLoading(false);
-                return;
-              }
-              if (data.error) lastErr = data.error;
-              if (res.status === 401 || res.status === 403) break;
-            } catch (_) {}
-          }
-          setLoginError(lastErr);
-          setLoginLoading(false);
-        };
-
-        const handleAdminLogout = () => {
-          localStorage.removeItem('meocung_admin_user');
-          setAdminUser(null);
-        };
-
-        const fetchSystemSettings = async () => {
-          for (const url of getCmsApiCandidates('/api/admin/settings')) {
-            try {
-              const res = await fetch(url);
-              if (res.ok) {
-                const data = await res.json();
-                if (data && data.settings) { setSysSettings(data.settings); return; }
-              }
-            } catch (_) {}
-          }
-        };
-
-        useEffect(() => {
-          if (adminUser && activeTab === 'settings') {
-            fetchSystemSettings();
-          }
-        }, [activeTab, adminUser]);
-
-        const handleSaveSystemSettings = async (e) => {
-          e.preventDefault();
-          setSysSaving(true);
-          for (const url of getCmsApiCandidates('/api/admin/settings')) {
-            try {
-              const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: sysSettings }),
-              });
-              if (res.ok) {
-                setSysSaving(false);
-                alert('Đã lưu Cài Đặt Hệ Thống vào Neon DB!');
-                return;
-              }
-            } catch (_) {}
-          }
-          setSysSaving(false);
-          alert('Không thể lưu cài đặt.');
-        };
-
-        const handleChangeAdminPassword = async (e) => {
-          e.preventDefault();
-          if (pwdForm.new_password !== pwdForm.confirm_password) {
-            return alert('Mật khẩu xác nhận không khớp!');
-          }
-          for (const url of getCmsApiCandidates('/api/admin/auth')) {
-            try {
-              const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: adminUser?.email,
-                  current_password: pwdForm.current_password,
-                  new_password: pwdForm.new_password,
-                }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (res.ok) {
-                setPwdForm({ current_password: '', new_password: '', confirm_password: '' });
-                return alert('Đã đổi mật khẩu thành công!');
-              }
-              return alert(data.error || 'Không thể đổi mật khẩu');
-            } catch (_) {}
-          }
         };
 
         const fetchOrders = async (overrideSearch, overrideStatus) => {
@@ -952,51 +712,35 @@
         }, [activeTab, orderStatusFilter]);
 
         const handleUpdateOrderStatus = async (order, nextStatus) => {
-          const prevOrders = orders;
-          setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: nextStatus } : o));
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: nextStatus }),
             });
-            if (!res.ok) throw new Error('Update failed');
-          } catch (_e) {
-            setOrders(prevOrders);
-            alert('Lỗi cập nhật trạng thái đơn hàng, đã hoàn tác.');
-          }
+            if (res.ok) fetchOrders();
+          } catch (_e) {}
         };
 
         const handleUpdateTracking = async (order) => {
           const code = prompt(`Nhập mã vận đơn cho đơn #${order.order_code}:`, order.tracking_code || '');
           if (code === null) return;
-          const cleanCode = code.trim();
-          const prevOrders = orders;
-          setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, tracking_code: cleanCode } : o));
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ tracking_code: cleanCode }),
+              body: JSON.stringify({ tracking_code: code.trim() }),
             });
-            if (!res.ok) throw new Error('Update failed');
-          } catch (_e) {
-            setOrders(prevOrders);
-            alert('Lỗi cập nhật mã vận đơn, đã hoàn tác.');
-          }
+            if (res.ok) fetchOrders();
+          } catch (_e) {}
         };
 
         const handleDeleteOrder = async (order) => {
-          if (!(await window.catConfirm(`Xóa (soft delete) đơn hàng #${order.order_code}?`))) return;
-          const prevOrders = orders;
-          setOrders((prev) => prev.filter((o) => o.id !== order.id));
+          if (!(await window.catConfirm(`Xóa đơn hàng #${order.order_code}?`))) return;
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Delete failed');
-          } catch (_e) {
-            setOrders(prevOrders);
-            alert('Không thể xóa đơn hàng, đã khôi phục lại.');
-          }
+            if (res.ok) fetchOrders();
+          } catch (_e) {}
         };
 
         // Quản lý Mã Giảm Giá & Voucher (lưu trực tiếp bảng public.voucher PostgreSQL)
@@ -1222,10 +966,6 @@
                   setSiteSettings((prev) => ({ ...prev, logo_url: data.url }));
                 } else if (target === 'banner') {
                   setBannerForm((prev) => ({ ...prev, image_url: data.url }));
-                } else if (target === 'hero_image') {
-                  setSiteSettings((prev) => ({ ...prev, pages_config: { ...prev.pages_config, home: { ...prev.pages_config?.home, hero_image: data.url } } }));
-                } else if (target === 'avatar') {
-                  setProfileForm((prev) => ({ ...prev, avatar_url: data.url }));
                 }
                 setUploadingTarget(null);
                 return;
@@ -1291,7 +1031,6 @@
                 { id: 'policies', label: '4 Thẻ Chính Sách Pastel', visible: true },
                 { id: 'banners', label: 'Dải Banner Quảng Cáo & Slider', visible: true },
                 { id: 'categories', label: 'Danh Mục Nổi Bật', visible: true },
-                { id: 'category_products', label: 'Sản Phẩm Theo Từng Danh Mục', visible: true },
                 { id: 'products', label: 'Sản Phẩm Nổi Bật', visible: true },
                 { id: 'blog', label: 'Cẩm Nang Nuôi Mèo Mới Nhất', visible: true },
               ],
@@ -1610,17 +1349,13 @@
         };
 
         const handleDeleteStaff = async (id) => {
-          if (!(await window.catConfirm('Xóa (soft delete) tài khoản nhân viên này?'))) return;
-          const prevStaff = staffList;
-          setStaffList((prev) => prev.filter((s) => s.id !== id));
+          if (!(await window.catConfirm('Xóa tài khoản nhân viên này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/staff?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
-              if (res.ok) return;
+              if (res.ok) { fetchStaff(); return; }
             } catch (_) {}
           }
-          setStaffList(prevStaff);
-          alert('Không thể xóa nhân viên, đã khôi phục lại.');
         };
 
         const fetchRoles = async () => {
@@ -1671,17 +1406,13 @@
         };
 
         const handleDeleteRole = async (id) => {
-          if (!(await window.catConfirm('Xóa (soft delete) vai trò phân quyền này?'))) return;
-          const prevRoles = rolesList;
-          setRolesList((prev) => prev.filter((r) => r.id !== id));
+          if (!(await window.catConfirm('Xóa vai trò phân quyền này?'))) return;
           for (const url of getCmsApiCandidates('/api/admin/roles?id=' + id)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
-              if (res.ok) return;
+              if (res.ok) { fetchRoles(); return; }
             } catch (_) {}
           }
-          setRolesList(prevRoles);
-          alert('Không thể xóa vai trò, đã khôi phục lại.');
         };
 
         const handleQuickUpdateProductField = async (prod, patch) => {
@@ -2031,27 +1762,21 @@
         };
 
         const handleDeleteProduct = async (id) => {
-          if (!canPerm('products', 'delete')) return alert('Bạn không có quyền xóa sản phẩm!');
-          if (!(await window.catConfirm('Xác nhận xóa (soft delete) sản phẩm khỏi kho hàng?'))) return;
+          if (!(await window.catConfirm('Xác nhận xóa sản phẩm khỏi kho hàng?'))) return;
           const targetProd = products.find(p => p.id === id);
-          const prevProducts = products;
-          setProducts(prev => prev.filter(p => p.id !== id));
-          logAdminAction('Xóa sản phẩm', targetProd ? targetProd.name : id, `Đã soft-delete sản phẩm ${targetProd ? targetProd.name : id}`);
           try {
-            const res = await fetch(`${getCmsApiCandidates('/api/medusa/products')[0]}?id=${id}`, {
+            await fetch(`https://meocung-ecommerce-seven.vercel.app/api/medusa/products?id=${id}`, {
               method: 'DELETE'
             });
-            if (!res.ok) throw new Error('Delete failed');
           } catch (e) {
             console.error('Error deleting product from DB:', e);
-            setProducts(prevProducts);
           }
+          setProducts(products.filter(p => p.id !== id));
+          logAdminAction('Xóa sản phẩm', targetProd ? targetProd.name : id, `Đã xóa sản phẩm ${targetProd ? targetProd.name : id}`);
         };
 
         const handleSaveProduct = async (e) => {
           e.preventDefault();
-          if (editingProduct && !canPerm('products', 'edit')) return alert('Bạn không có quyền sửa sản phẩm!');
-          if (!editingProduct && !canPerm('products', 'create')) return alert('Bạn không có quyền thêm sản phẩm!');
           if (!productForm.name.trim()) return alert('Vui lòng nhập tên sản phẩm!');
 
           const catNames = {
@@ -2061,41 +1786,38 @@
             'phu-kien': 'Phụ kiện & Đồ chơi'
           };
 
-          const prevProducts = products;
-          setIsProductModalOpen(false);
-          if (editingProduct) {
-            setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
-          } else {
-            const newId = `prod_${Date.now()}`;
-            const payload = {
-              id: newId,
-              ...productForm,
-              categoryName: catNames[productForm.category],
-              status: 'published'
-            };
-            setProducts(prev => [payload, ...prev]);
-          }
-
           try {
+            const apiBase = window.location.hostname === 'localhost'
+              ? 'http://localhost:3000'
+              : 'https://meocung-ecommerce-atoan.vercel.app';
             if (editingProduct) {
-              const res = await fetch(getCmsApiCandidates('/api/medusa/products')[0], {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: editingProduct.id, ...productForm })
-              });
-              if (!res.ok) throw new Error('Update failed');
-            } else {
-              const res = await fetch(getCmsApiCandidates('/api/medusa/products')[0], {
+              const payload = { id: editingProduct.id, ...productForm, category_name: catNames[productForm.category] || 'Sản phẩm Mèo Cưng' };
+              await fetch(`${apiBase}/api/admin/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...productForm, categoryName: catNames[productForm.category], status: 'published' })
+                body: JSON.stringify(payload)
               });
-              if (!res.ok) throw new Error('Create failed');
+              setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
+            } else {
+              const newId = `prod_${Date.now()}`;
+              const payload = {
+                id: newId,
+                ...productForm,
+                categoryName: catNames[productForm.category],
+                category_name: catNames[productForm.category],
+                status: 'published'
+              };
+              await fetch(`${apiBase}/api/admin/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              setProducts([payload, ...products]);
             }
           } catch (err) {
             console.error('Error saving product to DB:', err);
-            setProducts(prevProducts);
           }
+          setIsProductModalOpen(false);
           logAdminAction(
             editingProduct ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới',
             productForm.name,
@@ -2155,8 +1877,6 @@
 
         const handleSavePost = async (e) => {
           e.preventDefault();
-          if (editingPost && !canPerm('posts', 'edit')) return alert('Bạn không có quyền sửa bài viết!');
-          if (!editingPost && !canPerm('posts', 'create')) return alert('Bạn không có quyền thêm bài viết!');
           if (!postForm.title.trim()) return alert('Vui lòng nhập tiêu đề bài viết!');
 
           const isEdit = Boolean(editingPost);
@@ -2286,63 +2006,6 @@
           };
         }, []);
 
-        if (!adminUser) {
-          return (
-            <div className="min-h-screen w-screen bg-[#121214] flex items-center justify-center p-4 font-sans">
-              <div className="w-full max-w-md bg-[#18181b] border border-[#27272a] rounded-2xl shadow-2xl overflow-hidden">
-                <div className="p-6 border-b border-[#27272a] bg-gradient-to-r from-orange-500/15 to-indigo-500/10 flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-xl shadow">
-                    🐾
-                  </div>
-                  <div>
-                    <h1 className="text-base font-extrabold text-slate-100">Mèo Cưng Unified Admin</h1>
-                    <p className="text-[11px] text-orange-400 font-semibold">MEDUSAJS + PAYLOADCMS • ĐĂNG NHẬP QUẢN TRỊ</p>
-                  </div>
-                </div>
-                <form onSubmit={handleAdminLogin} className="p-6 space-y-4 text-xs">
-                  {loginError && (
-                    <div className="p-3 rounded-lg bg-rose-950/70 border border-rose-800/60 text-rose-300 font-medium">
-                      ⚠️ {loginError}
-                    </div>
-                  )}
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1.5">Email Quản Trị / Nhân Viên</label>
-                    <input
-                      type="email"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="admin@gmail.com"
-                      className="w-full bg-[#121214] border border-[#3f3f46] px-3.5 py-2.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-300 mb-1.5">Mật Khẩu</label>
-                    <input
-                      type="password"
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Nhập mật khẩu quản trị..."
-                      className="w-full bg-[#121214] border border-[#3f3f46] px-3.5 py-2.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loginLoading}
-                    className="w-full py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm transition-colors shadow-lg shadow-orange-950/50"
-                  >
-                    {loginLoading ? '⏳ Đang xác thực...' : '🔐 Đăng Nhập Trang Quản Trị'}
-                  </button>
-                  <p className="text-[11px] text-slate-500 text-center pt-1">
-                    Xác thực trực tiếp trên Neon PostgreSQL (bảng <span className="font-mono text-slate-400">users</span> & phân quyền RBAC).
-                  </p>
-                </form>
-              </div>
-            </div>
-          );
-        }
-
         return (
           <div className="flex h-screen w-screen overflow-hidden bg-[#121214] font-sans">
             {/* SIDEBAR TỔNG HỢP DUY NHẤT */}
@@ -2391,7 +2054,6 @@
                       </button>
 
                       {/* Mục Lớn: Quản Lý Sản Phẩm (Xổ ra các mục nhỏ liên kết logic) */}
-                      {['products', 'inventory', 'categories', 'collections', 'price_lists', 'reviews'].some(canViewTab) && (
                       <div>
                         <button
                           type="button"
@@ -2418,11 +2080,11 @@
                               { id: 'collections', icon: '✨', label: 'Bộ Sưu Tập', badge: collectionsList.length },
                               { id: 'price_lists', icon: '💰', label: 'Bảng Giá & Khuyến Mãi' },
                               { id: 'reviews', icon: '⭐', label: 'Đánh Giá Sản Phẩm', badge: reviewsList.length },
-                            ].filter((sub) => canViewTab(sub.id)).map((sub) => (
+                            ].map((sub) => (
                               <button
                                 key={sub.id}
                                 type="button"
-                                onClick={() => safeSetActiveTab(sub.id)}
+                                onClick={() => setActiveTab(sub.id)}
                                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
                                   activeTab === sub.id
                                     ? 'bg-orange-500/15 text-orange-400 font-bold'
@@ -2441,11 +2103,9 @@
                           </div>
                         )}
                       </div>
-                      )}
 
-                      {canViewTab('orders') && (
                       <button
-                        onClick={() => safeSetActiveTab('orders')}
+                        onClick={() => setActiveTab('orders')}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
                           activeTab === 'orders'
                             ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
@@ -2460,11 +2120,9 @@
                           {orders.length}
                         </span>
                       </button>
-                      )}
 
-                      {canViewTab('shipping_zones') && (
                       <button
-                        onClick={() => safeSetActiveTab('shipping_zones')}
+                        onClick={() => setActiveTab('shipping_zones')}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
                           activeTab === 'shipping_zones'
                             ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
@@ -2476,11 +2134,9 @@
                           <span>Khu Vực Giao Hàng</span>
                         </span>
                       </button>
-                      )}
 
-                      {canViewTab('flash_sales') && (
                       <button
-                        onClick={() => safeSetActiveTab('flash_sales')}
+                        onClick={() => setActiveTab('flash_sales')}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
                           activeTab === 'flash_sales'
                             ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
@@ -2492,7 +2148,6 @@
                           <span>Flash Sale Tự Động</span>
                         </span>
                       </button>
-                      )}
 
                       <button
                         onClick={() => setActiveTab('audit_logs')}
@@ -2514,7 +2169,6 @@
                       </button>
 
                       {/* Mục Lớn: Quản Lý Tài Khoản & Phân Quyền */}
-                      {['customers', 'staff', 'roles'].some(canViewTab) && (
                       <div>
                         <button
                           type="button"
@@ -2538,11 +2192,11 @@
                               { id: 'customers', icon: '🧑', label: 'Người Dùng (Khách Hàng)' },
                               { id: 'staff', icon: '🧑‍💼', label: 'Nhân Viên Quản Trị', badge: staffList.length },
                               { id: 'roles', icon: '🛡️', label: 'Phân Quyền (RBAC)', badge: rolesList.length },
-                            ].filter((sub) => canViewTab(sub.id)).map((sub) => (
+                            ].map((sub) => (
                               <button
                                 key={sub.id}
                                 type="button"
-                                onClick={() => safeSetActiveTab(sub.id)}
+                                onClick={() => setActiveTab(sub.id)}
                                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
                                   activeTab === sub.id
                                     ? 'bg-orange-500/15 text-orange-400 font-bold'
@@ -2561,21 +2215,18 @@
                           </div>
                         )}
                       </div>
-                      )}
                     </div>
                   </div>
 
                   {/* PAYLOADCMS HEADLESS NATIVE (TRỰC TIẾP, KHÔNG CẦN LOGIN) */}
-                  {['posts', 'banners', 'coupons', 'site_logo', 'page_home'].some(canViewTab) && (
                   <div>
                     <div className="px-3 pb-1 text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center justify-between">
                       <span>📝 PAYLOAD CMS NATIVE</span>
                       <span className="text-[9px] bg-indigo-950 text-indigo-300 font-mono px-1 rounded">CONTENT</span>
                     </div>
                     <div className="space-y-0.5">
-                      {canViewTab('posts') && (
                       <button
-                        onClick={() => safeSetActiveTab('posts')}
+                        onClick={() => setActiveTab('posts')}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
                           activeTab === 'posts'
                             ? 'bg-indigo-950/70 text-indigo-300 font-bold border border-indigo-700/50'
@@ -2590,11 +2241,9 @@
                           {posts.length || '101+'}
                         </span>
                       </button>
-                      )}
 
-                      {canViewTab('banners') && (
                       <button
-                        onClick={() => safeSetActiveTab('banners')}
+                        onClick={() => setActiveTab('banners')}
                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
                           activeTab === 'banners'
                             ? 'bg-indigo-950/70 text-indigo-300 font-bold border border-indigo-700/50'
@@ -2604,11 +2253,9 @@
                         <span>🖼️</span>
                         <span>Banner Quảng Cáo & Slider</span>
                       </button>
-                      )}
 
-                      {canViewTab('coupons') && (
                       <button
-                        onClick={() => safeSetActiveTab('coupons')}
+                        onClick={() => setActiveTab('coupons')}
                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
                           activeTab === 'coupons'
                             ? 'bg-indigo-950/70 text-indigo-300 font-bold border border-indigo-700/50'
@@ -2618,10 +2265,8 @@
                         <span>🏷️</span>
                         <span>Mã Giảm Giá & Voucher</span>
                       </button>
-                      )}
 
                       {/* Mục lớn ở ngoài, nhấp vào để xổ ra từng trang nhỏ lẻ bên trong */}
-                      {canViewTab('page_home') && (
                       <div>
                         <button
                           type="button"
@@ -2652,7 +2297,7 @@
                               <button
                                 key={sub.id}
                                 type="button"
-                                onClick={() => safeSetActiveTab(sub.id)}
+                                onClick={() => setActiveTab(sub.id)}
                                 className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
                                   activeTab === sub.id
                                     ? 'bg-indigo-600/20 text-indigo-300 font-bold'
@@ -2666,59 +2311,13 @@
                           </div>
                         )}
                       </div>
-                      )}
                     </div>
-                  </div>
-                  )}
-
-                  {/* HỆ THỐNG & CÀI ĐẶT */}
-                  <div className="pt-2 border-t border-[#27272a] space-y-0.5">
-                    <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      <span>⚙️ HỆ THỐNG</span>
-                    </div>
-                    <button
-                      onClick={() => safeSetActiveTab('profile')}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
-                        activeTab === 'profile'
-                          ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
-                          : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
-                      }`}
-                    >
-                      <span>👤</span>
-                      <span>Tài Khoản Cá Nhân</span>
-                    </button>
-                    {canViewTab('settings') && (
-                    <button
-                      onClick={() => safeSetActiveTab('settings')}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
-                        activeTab === 'settings'
-                          ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
-                          : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
-                      }`}
-                    >
-                      <span>⚙️</span>
-                      <span>Cài Đặt Hệ Thống</span>
-                    </button>
-                    )}
                   </div>
                 </nav>
               </div>
 
-              {/* Bottom: Logged-in Admin + Logout + Storefront Link */}
-              <div className="p-3 border-t border-[#27272a] bg-[#141416] space-y-2">
-                <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a]">
-                  <button type="button" onClick={() => safeSetActiveTab('profile')} className="min-w-0 text-left flex-1 hover:opacity-80">
-                    <div className="text-[11px] font-bold text-slate-200 truncate">{adminUser?.full_name || adminUser?.email}</div>
-                    <div className="text-[10px] text-orange-400 font-semibold truncate">{adminUser?.role_name || adminUser?.role}</div>
-                  </button>
-                  <button
-                    onClick={handleAdminLogout}
-                    title="Đăng xuất"
-                    className="shrink-0 px-2 py-1 rounded bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/50 text-[10px] font-bold"
-                  >
-                    🚪 Thoát
-                  </button>
-                </div>
+              {/* Bottom: Storefront Link */}
+              <div className="p-3 border-t border-[#27272a] bg-[#141416]">
                 <a
                   href={STOREFRONT_URL}
                   target="_blank"
@@ -2752,8 +2351,6 @@
                     {activeTab === 'price_lists' && 'Medusa Pricing: Bảng Giá Niêm Yết & Khuyến Mãi'}
                     {activeTab === 'staff' && 'Hệ Thống: Quản Lý Nhân Viên Quản Trị'}
                     {activeTab === 'roles' && 'Hệ Thống: Phân Quyền Vai Trò Chi Tiết (RBAC)'}
-                    {activeTab === 'settings' && 'Hệ Thống: Cài Đặt Cửa Hàng, Thanh Toán & Bảo Mật'}
-                    {activeTab === 'profile' && 'Hệ Thống: Tài Khoản Cá Nhân & Quyền Hạn Của Tôi'}
                     {activeTab === 'products' && 'Medusa Commerce: Quản Lý Sản Phẩm Hạt, Pate & Tồn Kho'}
                     {activeTab === 'orders' && 'Medusa Fulfillment: Quản Lý Đơn Hàng'}
                     {activeTab === 'shipping_zones' && 'Medusa Shipping: Khu Vực Giao Hàng & Biểu Phí'}
@@ -2897,23 +2494,6 @@
               {/* View Content (Tự động chuyển Split-Screen WordPress Live Preview khi chỉnh giao diện) */}
               <div className={isCustomizerTab ? 'flex-1 flex overflow-hidden' : 'flex-1 overflow-auto p-6'}>
                 <div className={isCustomizerTab ? 'w-[430px] xl:w-[470px] shrink-0 overflow-auto p-4 border-r border-[#27272a] bg-[#121214]' : 'w-full'}>
-                  {!canViewTab(activeTab) ? (
-                    <div className="max-w-lg mx-auto my-12 bg-[#18181b] border border-rose-800/60 rounded-2xl p-8 text-center space-y-3 shadow-2xl">
-                      <div className="text-4xl">🚫</div>
-                      <h3 className="text-base font-extrabold text-rose-400">403 — Không Có Quyền Truy Cập</h3>
-                      <p className="text-xs text-slate-400">
-                        Vai trò hiện tại của bạn (<strong className="text-slate-200">{adminUser?.role_name || adminUser?.role}</strong>) không được cấp quyền sử dụng phân hệ này.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => safeSetActiveTab('profile')}
-                        className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs"
-                      >
-                        👤 Quay về Tài khoản cá nhân
-                      </button>
-                    </div>
-                  ) : (
-                  <>
 
                 {/* 0. TAB TỔNG QUAN DOANH THU & DỮ LIỆU THẬT */}
                 {activeTab === 'audit_logs' && (() => {
@@ -3471,8 +3051,6 @@
                                 { key: 'customers', label: '🧑 Khách Hàng Thành Viên' },
                                 { key: 'posts', label: '📰 Bài Viết, Banner & Voucher' },
                                 { key: 'theme', label: '🎨 Tùy Chỉnh Giao Diện Web' },
-                                { key: 'staff', label: '🧑‍💼 Nhân Viên & Phân Quyền' },
-                                { key: 'settings', label: '⚙️ Cài Đặt Hệ Thống' },
                               ].map((mod) => {
                                 const p = roleObj.permissions?.[mod.key] || {};
                                 return (
@@ -4358,277 +3936,6 @@
                   </div>
                 )}
 
-                {/* TAB TÀI KHOẢN CÁ NHÂN (PROFILE) */}
-                {activeTab === 'profile' && (
-                  <div className="space-y-6 max-w-4xl mx-auto text-xs">
-                    <form onSubmit={handleSaveProfile} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#27272a]">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={profileForm.avatar_url || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200'}
-                            alt="Avatar"
-                            className="w-14 h-14 rounded-2xl object-cover border border-[#3f3f46]"
-                          />
-                          <div>
-                            <h3 className="font-bold text-slate-100 text-sm">{profileForm.full_name || adminUser?.email}</h3>
-                            <p className="text-orange-400 font-semibold">{adminUser?.role_name || adminUser?.role} • {adminUser?.email}</p>
-                          </div>
-                        </div>
-                        <button type="submit" disabled={profileSaving} className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">
-                          {profileSaving ? '⏳ Đang lưu...' : '💾 Lưu Hồ Sơ Cá Nhân'}
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Họ và tên hiển thị</label>
-                          <input type="text" value={profileForm.full_name} onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })} placeholder="VD: Nguyễn Thu Trang" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Số điện thoại liên hệ</label>
-                          <input type="text" value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} placeholder="0901234567" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Chức danh / Bộ phận</label>
-                          <input type="text" value={profileForm.job_title} onChange={(e) => setProfileForm({ ...profileForm, job_title: e.target.value })} placeholder="VD: Quản lý vận hành" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Ảnh đại diện (Vercel Blob)</label>
-                          <div className="flex items-center gap-2">
-                            <input type="url" value={profileForm.avatar_url} onChange={(e) => setProfileForm({ ...profileForm, avatar_url: e.target.value })} placeholder="https://..." className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200">
-                              {uploadingTarget === 'avatar' ? '⏳...' : '📁 Chọn ảnh'}
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(f, 'avatar'); e.target.value = ''; }} />
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-
-                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3">
-                      <h4 className="font-bold text-indigo-400 uppercase text-[11px]">🛡️ Quyền Hạn Tài Khoản Của Tôi ({adminUser?.role})</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-                        {[
-                          { key: 'products', label: 'Sản phẩm' },
-                          { key: 'inventory', label: 'Tồn kho & Giá' },
-                          { key: 'orders', label: 'Đơn hàng' },
-                          { key: 'customers', label: 'Khách hàng' },
-                          { key: 'posts', label: 'Bài viết & Voucher' },
-                          { key: 'theme', label: 'Giao diện Web' },
-                          { key: 'staff', label: 'Nhân sự & RBAC' },
-                          { key: 'settings', label: 'Cài đặt hệ thống' },
-                        ].map((m) => {
-                          const hasView = canPerm(m.key, 'view');
-                          return (
-                            <div key={m.key} className={`p-2.5 rounded-lg border ${hasView ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-[#121214] border-[#27272a] text-slate-500'}`}>
-                              <div className="font-bold flex items-center justify-between">
-                                <span>{m.label}</span>
-                                <span>{hasView ? '✅' : '🔒'}</span>
-                              </div>
-                              <div className="text-[10px] mt-1">
-                                {hasView
-                                  ? ['view', 'create', 'edit', 'delete'].filter((a) => canPerm(m.key, a)).join(' • ')
-                                  : 'Không có quyền'}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <form onSubmit={handleChangeAdminPassword} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-emerald-400 uppercase text-[11px]">🔐 Đổi Mật Khẩu Đăng Nhập</h4>
-                          <p className="text-slate-400 mt-0.5">Cập nhật mật khẩu mới cho tài khoản {adminUser?.email}.</p>
-                        </div>
-                        <button type="submit" className="px-4 py-2 font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg">🔑 Đổi Mật Khẩu</button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input type="password" required placeholder="Mật khẩu hiện tại" value={pwdForm.current_password} onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        <input type="password" required placeholder="Mật khẩu mới (>= 6 ký tự)" value={pwdForm.new_password} onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        <input type="password" required placeholder="Nhập lại mật khẩu mới" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({ ...pwdForm, confirm_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                {/* TAB CÀI ĐẶT HỆ THỐNG (SETTINGS) */}
-                {activeTab === 'settings' && (
-                  <div className="space-y-6 max-w-5xl mx-auto">
-                    <form onSubmit={handleSaveSystemSettings} className="space-y-5 text-xs">
-                      <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
-                        <div>
-                          <h3 className="font-bold text-slate-100 text-sm">⚙️ Cài Đặt Chung & Thanh Toán (Neon DB)</h3>
-                          <p className="text-xs text-slate-400">Quản lý thông tin cửa hàng, kho mặc định, cổng thanh toán và ngưỡng cảnh báo tồn kho.</p>
-                        </div>
-                        <button type="submit" disabled={sysSaving} className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">
-                          {sysSaving ? '⏳ Đang lưu...' : '💾 Lưu Cài Đặt'}
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3.5">
-                          <h4 className="font-bold text-orange-400 uppercase text-[11px]">🏪 Thông Tin Cửa Hàng & Kho</h4>
-                          <div>
-                            <label className="block font-bold text-slate-300 mb-1">Tên cửa hàng</label>
-                            <input type="text" value={sysSettings.store_name || ''} onChange={(e) => setSysSettings({ ...sysSettings, store_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Email hỗ trợ</label>
-                              <input type="email" value={sysSettings.support_email || ''} onChange={(e) => setSysSettings({ ...sysSettings, support_email: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Hotline</label>
-                              <input type="text" value={sysSettings.support_hotline || ''} onChange={(e) => setSysSettings({ ...sysSettings, support_hotline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block font-bold text-slate-300 mb-1">Địa chỉ kho lấy hàng mặc định</label>
-                            <input type="text" value={sysSettings.warehouse_address || ''} onChange={(e) => setSysSettings({ ...sysSettings, warehouse_address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                          </div>
-                          <div className="grid grid-cols-3 gap-3">
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Tiền tệ</label>
-                              <select value={sysSettings.currency || 'VND'} onChange={(e) => setSysSettings({ ...sysSettings, currency: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
-                                <option value="VND">VND (₫)</option>
-                                <option value="USD">USD ($)</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Thuế VAT (%)</label>
-                              <input type="number" min="0" max="30" value={sysSettings.tax_percent || 0} onChange={(e) => setSysSettings({ ...sysSettings, tax_percent: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Cảnh báo tồn &lt;</label>
-                              <input type="number" min="1" value={sysSettings.low_stock_threshold || 10} onChange={(e) => setSysSettings({ ...sysSettings, low_stock_threshold: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-amber-400 font-bold" />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3.5">
-                          <h4 className="font-bold text-indigo-400 uppercase text-[11px]">💳 Phương Thức Thanh Toán & Vận Hành</h4>
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
-                            <span className="font-semibold text-slate-200">Thanh toán khi nhận hàng (COD)</span>
-                            <input type="checkbox" checked={sysSettings.enable_cod !== false} onChange={(e) => setSysSettings({ ...sysSettings, enable_cod: e.target.checked })} className="accent-orange-500" />
-                          </label>
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
-                            <span className="font-semibold text-slate-200">Chuyển khoản Ngân hàng / VietQR</span>
-                            <input type="checkbox" checked={sysSettings.enable_bank_qr !== false} onChange={(e) => setSysSettings({ ...sysSettings, enable_bank_qr: e.target.checked })} className="accent-orange-500" />
-                          </label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Ngân hàng</label>
-                              <input type="text" value={sysSettings.bank_name || ''} onChange={(e) => setSysSettings({ ...sysSettings, bank_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Số tài khoản</label>
-                              <input type="text" value={sysSettings.bank_account_no || ''} onChange={(e) => setSysSettings({ ...sysSettings, bank_account_no: e.target.value })} placeholder="VD: 0123456789" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-mono" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block font-bold text-slate-300 mb-1">Tên chủ tài khoản</label>
-                            <input type="text" value={sysSettings.bank_account_name || ''} onChange={(e) => setSysSettings({ ...sysSettings, bank_account_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 uppercase" />
-                          </div>
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
-                            <span className="font-semibold text-slate-200">Gửi email thông báo khi có đơn hàng mới</span>
-                            <input type="checkbox" checked={sysSettings.notify_new_order_email !== false} onChange={(e) => setSysSettings({ ...sysSettings, notify_new_order_email: e.target.checked })} className="accent-orange-500" />
-                          </label>
-                        </div>
-
-                        {/* Card 3: Đặt hàng & Checkout */}
-                        <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3.5">
-                          <h4 className="font-bold text-emerald-400 uppercase text-[11px]">🛒 Cài Đặt Đặt Hàng & Checkout</h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Tiền tố mã đơn</label>
-                              <input type="text" value={sysSettings.order_prefix || 'MC-'} onChange={(e) => setSysSettings({ ...sysSettings, order_prefix: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-mono" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Giá trị đơn tối thiểu (₫)</label>
-                              <input type="number" min="0" value={sysSettings.min_order_value || 0} onChange={(e) => setSysSettings({ ...sysSettings, min_order_value: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Hạn mức COD tối đa (₫)</label>
-                              <input type="number" min="0" value={sysSettings.max_cod_amount || 5000000} onChange={(e) => setSysSettings({ ...sysSettings, max_cod_amount: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Tự hủy đơn chưa TT sau (giờ)</label>
-                              <input type="number" min="1" value={sysSettings.auto_cancel_unpaid_hours || 24} onChange={(e) => setSysSettings({ ...sysSettings, auto_cancel_unpaid_hours: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                          </div>
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
-                            <span className="font-semibold text-slate-200">Cho phép khách mua nhanh không cần đăng nhập</span>
-                            <input type="checkbox" checked={sysSettings.allow_guest_checkout !== false} onChange={(e) => setSysSettings({ ...sysSettings, allow_guest_checkout: e.target.checked })} className="accent-orange-500" />
-                          </label>
-                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
-                            <span className="font-semibold text-slate-200">Tự động xác nhận đơn hàng mới</span>
-                            <input type="checkbox" checked={Boolean(sysSettings.auto_confirm_order)} onChange={(e) => setSysSettings({ ...sysSettings, auto_confirm_order: e.target.checked })} className="accent-orange-500" />
-                          </label>
-                        </div>
-
-                        {/* Card 4: Đóng gói, Vận chuyển & Bảo trì */}
-                        <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3.5">
-                          <h4 className="font-bold text-blue-400 uppercase text-[11px]">🚚 Đóng Gói, SEO & Chế Độ Bảo Trì</h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Đơn vị vận chuyển mặc định</label>
-                              <select value={sysSettings.default_shipping_carrier || 'GHN'} onChange={(e) => setSysSettings({ ...sysSettings, default_shipping_carrier: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
-                                <option value="GHN">Giao Hàng Nhanh (GHN)</option>
-                                <option value="GHTK">Giao Hàng Tiết Kiệm</option>
-                                <option value="VTP">Viettel Post</option>
-                                <option value="AHAMOVE">AhaMove 2H</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Khối lượng gói mặc định (gram)</label>
-                              <input type="number" min="50" value={sysSettings.default_package_weight_g || 500} onChange={(e) => setSysSettings({ ...sysSettings, default_package_weight_g: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Freeship toàn sàn từ (₫)</label>
-                              <input type="number" min="0" value={sysSettings.free_ship_global_threshold || 300000} onChange={(e) => setSysSettings({ ...sysSettings, free_ship_global_threshold: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-emerald-400 font-bold" />
-                            </div>
-                            <div>
-                              <label className="block font-bold text-slate-300 mb-1">Số dòng mỗi trang Admin</label>
-                              <input type="number" min="5" max="100" value={sysSettings.items_per_page || 20} onChange={(e) => setSysSettings({ ...sysSettings, items_per_page: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block font-bold text-slate-300 mb-1">Hậu tố tiêu đề SEO</label>
-                            <input type="text" value={sysSettings.meta_title_suffix || ''} onChange={(e) => setSysSettings({ ...sysSettings, meta_title_suffix: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
-                              <span className="font-semibold text-slate-200">Bật Chatbot AI</span>
-                              <input type="checkbox" checked={sysSettings.enable_ai_chatbot !== false} onChange={(e) => setSysSettings({ ...sysSettings, enable_ai_chatbot: e.target.checked })} className="accent-orange-500" />
-                            </label>
-                            <label className="flex items-center justify-between p-2.5 rounded-lg bg-rose-950/30 border border-rose-800/50 cursor-pointer">
-                              <span className="font-semibold text-rose-300">Chế độ bảo trì</span>
-                              <input type="checkbox" checked={Boolean(sysSettings.maintenance_mode)} onChange={(e) => setSysSettings({ ...sysSettings, maintenance_mode: e.target.checked })} className="accent-rose-500" />
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-
-                    <form onSubmit={handleChangeAdminPassword} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-emerald-400 uppercase text-[11px]">🔐 Bảo Mật Tài Khoản Cá Nhân ({adminUser?.email})</h4>
-                          <p className="text-slate-400 mt-0.5">Đổi mật khẩu đăng nhập cho tài khoản quản trị hiện tại.</p>
-                        </div>
-                        <button type="submit" className="px-4 py-2 font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg">🔑 Đổi Mật Khẩu</button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input type="password" required placeholder="Mật khẩu hiện tại" value={pwdForm.current_password} onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        <input type="password" required placeholder="Mật khẩu mới (>= 6 ký tự)" value={pwdForm.new_password} onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        <input type="password" required placeholder="Nhập lại mật khẩu mới" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({ ...pwdForm, confirm_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                      </div>
-                    </form>
-                  </div>
-                )}
-
                 {/* 6. TAB CUSTOMERS (NEON POSTGRESQL) */}
                 {activeTab === 'customers' && (
                   <div className="space-y-4 max-w-7xl mx-auto">
@@ -5299,36 +4606,6 @@
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[#27272a]">
                         <div>
-                          <label className="flex items-center justify-between font-bold text-slate-300 mb-1">
-                            <span>Nút Hotline Hero</span>
-                            <input type="checkbox" checked={siteSettings.pages_config?.home?.hero_show_hotline !== false} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_show_hotline: e.target.checked } } })} className="accent-orange-500" />
-                          </label>
-                          <input type="text" placeholder={`Hotline: ${siteSettings.hotline || '0382542737'}`} value={siteSettings.pages_config?.home?.hero_hotline_label || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_hotline_label: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Icon Mascot góc phải (hoặc để trống)</label>
-                          <input type="text" placeholder="🐱" value={siteSettings.pages_config?.home?.hero_mascot ?? '🐱'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_mascot: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Màu chữ trên Hero</label>
-                          <input type="color" value={siteSettings.pages_config?.home?.hero_text_color || '#ffffff'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_text_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-300 mb-1">Ảnh nền Hero Banner (tùy chọn, phủ trên màu nền)</label>
-                        <div className="flex items-center gap-2">
-                          <input type="url" placeholder="https://..." value={siteSettings.pages_config?.home?.hero_image || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_image: e.target.value } } })} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                          <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200">
-                            {uploadingTarget === 'hero_image' ? '⏳ Đang tải...' : '📁 Chọn ảnh'}
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(f, 'hero_image'); e.target.value = ''; }} />
-                          </label>
-                          {siteSettings.pages_config?.home?.hero_image && (
-                            <button type="button" onClick={() => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_image: '' } } })} className="px-2.5 py-2 bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded-lg font-bold">Xóa ảnh</button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[#27272a]">
-                        <div>
                           <label className="block font-bold text-slate-300 mb-1">Tiêu đề mục Danh mục</label>
                           <input type="text" value={siteSettings.pages_config?.home?.categories_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, categories_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
@@ -5340,67 +4617,6 @@
                           <label className="block font-bold text-slate-300 mb-1">Tiêu đề mục Cẩm nang</label>
                           <input type="text" value={siteSettings.pages_config?.home?.blog_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Mô tả ngắn mục Danh mục</label>
-                          <input type="text" placeholder="Đầy đủ các dòng thức ăn hạt, pate thơm ngon..." value={siteSettings.pages_config?.home?.categories_subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, categories_subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Mô tả ngắn mục Tin tức / Cẩm nang</label>
-                          <input type="text" placeholder="Kiến thức chăm sóc mèo chuẩn khoa học..." value={siteSettings.pages_config?.home?.blog_subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Số SP hiển thị / mỗi danh mục</label>
-                          <select value={siteSettings.pages_config?.home?.products_per_category || 4} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, products_per_category: Number(e.target.value) } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
-                            <option value={2}>2 sản phẩm</option>
-                            <option value={4}>4 sản phẩm (1 hàng)</option>
-                            <option value={8}>8 sản phẩm (2 hàng)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block font-bold text-slate-300 mb-1">Số bài viết Tin tức trên Trang chủ</label>
-                          <select value={siteSettings.pages_config?.home?.blog_count || 3} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_count: Number(e.target.value) } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
-                            <option value={3}>3 bài viết</option>
-                            <option value={6}>6 bài viết</option>
-                          </select>
-                        </div>
-                        <label className="flex items-center gap-2 text-slate-200 font-semibold pt-4 cursor-pointer">
-                          <input type="checkbox" checked={Boolean(siteSettings.pages_config?.home?.hide_empty_categories)} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hide_empty_categories: e.target.checked } } })} className="accent-orange-500" />
-                          <span>Ẩn danh mục chưa có sản phẩm</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Khối 4: Chỉnh sửa 4 Thẻ Chính Sách Pastel */}
-                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3 text-xs">
-                      <h4 className="font-bold text-amber-400 uppercase">4. Tùy Chỉnh 4 Thẻ Chính Sách Pastel</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {(() => {
-                          const defaultPols = [
-                            { title: 'Sản phẩm an toàn', subtitle: '100% nguồn gốc rõ ràng', bgColor: '#FAF7CA', icon: '🛡️', href: '/chinh-sach#chinh-hang' },
-                            { title: 'Chất lượng chính hãng', subtitle: 'Hạt & pate dinh dưỡng cao', bgColor: '#E3FFD3', icon: '✨', href: '/chinh-sach#chinh-hang' },
-                            { title: 'Đổi trả 7 ngày', subtitle: 'Hoàn tiền nhanh nếu lỗi NSX', bgColor: '#FED5DC', icon: '🎖️', href: '/chinh-sach#doi-tra' },
-                            { title: 'Giao hàng hoả tốc', subtitle: 'Nhanh chóng trong 2h tại HCM', bgColor: '#E4E7FF', icon: '🚀', href: '/chinh-sach#giao-hang' },
-                          ];
-                          const pols = Array.isArray(siteSettings.pages_config?.home?.policies) && siteSettings.pages_config.home.policies.length === 4 ? siteSettings.pages_config.home.policies : defaultPols;
-                          const updatePol = (idx, field, val) => {
-                            const next = pols.map((p, i) => (i === idx ? { ...p, [field]: val } : p));
-                            setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, policies: next } } });
-                          };
-                          return pols.map((pol, idx) => (
-                            <div key={idx} className="p-3 rounded-lg bg-[#121214] border border-[#27272a] space-y-2">
-                              <div className="flex items-center gap-2">
-                                <input type="text" value={pol.icon || ''} onChange={(e) => updatePol(idx, 'icon', e.target.value)} className="w-12 text-center bg-[#18181b] border border-[#3f3f46] py-1 rounded text-slate-100" />
-                                <input type="text" value={pol.title || ''} onChange={(e) => updatePol(idx, 'title', e.target.value)} placeholder="Tiêu đề thẻ" className="flex-1 bg-[#18181b] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-100 font-bold" />
-                                <input type="color" value={pol.bgColor || '#FAF7CA'} onChange={(e) => updatePol(idx, 'bgColor', e.target.value)} className="w-8 h-7 rounded cursor-pointer bg-transparent" />
-                              </div>
-                              <input type="text" value={pol.subtitle || ''} onChange={(e) => updatePol(idx, 'subtitle', e.target.value)} placeholder="Mô tả ngắn" className="w-full bg-[#18181b] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-300" />
-                            </div>
-                          ));
-                        })()}
                       </div>
                     </div>
                   </form>
@@ -5574,8 +4790,6 @@
                   </form>
                 )}
 
-                  </>
-                  )}
                 </div>
 
                 {isCustomizerTab && (
@@ -5641,7 +4855,7 @@
               >
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-[#18181b] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#27272a] overflow-hidden"
+                  className="bg-[#18181b] rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#27272a] overflow-hidden"
                 >
                   <div className="p-4 border-b border-[#27272a] flex items-center justify-between shrink-0">
                     <h3 className="font-bold text-sm text-slate-100">
@@ -5650,7 +4864,7 @@
                     <button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
                   </div>
 
-                  <form onSubmit={handleSaveProduct} className="p-5 space-y-3.5 text-xs overflow-y-auto flex-1 sidebar-scroll">
+                  <form onSubmit={handleSaveProduct} className="p-5 space-y-3.5 text-xs flex-1 overflow-y-auto">
                     <div>
                       <label className="block font-bold text-slate-300 uppercase mb-1">Tên sản phẩm *</label>
                       <input
@@ -5679,15 +4893,26 @@
                       </div>
 
                       <div>
-                        <label className="block font-bold text-slate-300 uppercase mb-1">Quy cách (Trọng lượng)</label>
+                        <label className="block font-bold text-slate-300 uppercase mb-1">Quy cách</label>
                         <input
                           type="text"
                           value={productForm.weight}
                           onChange={(e) => setProductForm({ ...productForm, weight: e.target.value })}
-                          placeholder="VD: 1kg, 2kg, 6L..."
+                          placeholder="VD: Size L, Túi, Lon..."
                           className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-300 uppercase mb-1">Khối lượng thực</label>
+                      <input
+                        type="text"
+                        value={productForm.actual_weight || ''}
+                        onChange={(e) => setProductForm({ ...productForm, actual_weight: e.target.value })}
+                        placeholder="VD: 500g, 1.5kg, 4kg, 6L..."
+                        className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -6397,34 +5622,26 @@
                         { tab: 'posts', label: '📰 Cẩm Nang Nuôi Mèo (PayloadCMS)' },
                         { tab: 'banners', label: '🖼️ Banner Quảng Cáo & Slider' },
                         { tab: 'coupons', label: '🏷️ Mã Giảm Giá & Voucher' },
-                        { tab: 'page_home', label: '🏠 Tùy Chỉnh Trang Chủ (Live Preview)' },
-                        { tab: 'profile', label: '👤 Tài Khoản Cá Nhân' },
-                        { tab: 'settings', label: '⚙️ Cài Đặt Hệ Thống (Settings)' },
-                      ].filter((n) => canViewTab(n.tab) && (!q || n.label.toLowerCase().includes(q) || n.tab.includes(q)));
-                      const matchedProds = canViewTab('products') ? products.filter((p) => !q || (p.name || '').toLowerCase().includes(q) || (p.vendor || '').toLowerCase().includes(q)).slice(0, 5) : [];
-                      const matchedOrders = canViewTab('orders') ? orders.filter((o) => !q || (o.order_code || '').toLowerCase().includes(q) || (o.customer_name || '').toLowerCase().includes(q)).slice(0, 5) : [];
-                      const matchedPosts = canViewTab('posts') ? posts.filter((p) => !q || (p.title || '').toLowerCase().includes(q)).slice(0, 4) : [];
+                        { tab: 'site_hero', label: '🏠 Tùy Chỉnh Trang Chủ (Live Preview)' },
+                      ].filter((n) => !q || n.label.toLowerCase().includes(q) || n.tab.includes(q));
+                      const matchedProds = products.filter((p) => !q || (p.name || '').toLowerCase().includes(q) || (p.vendor || '').toLowerCase().includes(q)).slice(0, 5);
+                      const matchedOrders = orders.filter((o) => !q || (o.order_code || '').toLowerCase().includes(q) || (o.customer_name || '').toLowerCase().includes(q)).slice(0, 5);
+                      const matchedPosts = posts.filter((p) => !q || (p.title || '').toLowerCase().includes(q)).slice(0, 4);
                       return (
                         <>
-                          {(canPerm('products', 'create') || canPerm('posts', 'create')) && (
                           <div>
                             <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Thao tác nhanh</div>
                             <div className="grid grid-cols-2 gap-1.5">
-                              {canPerm('products', 'create') && (
-                                <button onClick={() => { setIsCommandOpen(false); safeSetActiveTab('products'); handleOpenCreateProduct(); }} className="text-left px-3 py-2 rounded-lg bg-[#121214] hover:bg-orange-600/20 border border-[#27272a] text-slate-200 font-semibold">➕ Thêm Sản Phẩm Mới</button>
-                              )}
-                              {canPerm('posts', 'create') && (
-                                <button onClick={() => { setIsCommandOpen(false); safeSetActiveTab('posts'); handleOpenCreatePost(); }} className="text-left px-3 py-2 rounded-lg bg-[#121214] hover:bg-indigo-600/20 border border-[#27272a] text-slate-200 font-semibold">✍️ Viết Bài Cẩm Nang Mới</button>
-                              )}
+                              <button onClick={() => { setIsCommandOpen(false); setActiveTab('products'); handleOpenCreateProduct(); }} className="text-left px-3 py-2 rounded-lg bg-[#121214] hover:bg-orange-600/20 border border-[#27272a] text-slate-200 font-semibold">➕ Thêm Sản Phẩm Mới</button>
+                              <button onClick={() => { setIsCommandOpen(false); setActiveTab('posts'); handleOpenCreatePost(); }} className="text-left px-3 py-2 rounded-lg bg-[#121214] hover:bg-indigo-600/20 border border-[#27272a] text-slate-200 font-semibold">✍️ Viết Bài Cẩm Nang Mới</button>
                             </div>
                           </div>
-                          )}
                           {navItems.length > 0 && (
                             <div>
                               <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Đi tới phân hệ</div>
                               <div className="grid grid-cols-2 gap-1">
                                 {navItems.slice(0, 8).map((n) => (
-                                  <button key={n.tab} onClick={() => { safeSetActiveTab(n.tab); setIsCommandOpen(false); }} className="text-left px-3 py-1.5 rounded-lg hover:bg-[#27272a] text-slate-200 flex items-center justify-between">
+                                  <button key={n.tab} onClick={() => { setActiveTab(n.tab); setIsCommandOpen(false); }} className="text-left px-3 py-1.5 rounded-lg hover:bg-[#27272a] text-slate-200 flex items-center justify-between">
                                     <span>{n.label}</span>
                                     <span className="text-[10px] text-slate-500 font-mono">↵</span>
                                   </button>
