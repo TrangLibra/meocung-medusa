@@ -5547,15 +5547,15 @@
             {/* MODAL SẢN PHẨM MEDUSA */}
             {isProductModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-                <div className="bg-[#18181b] rounded-2xl max-w-lg w-full shadow-2xl border border-[#27272a] overflow-hidden">
-                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between">
+                <div className="bg-[#18181b] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#27272a] overflow-hidden">
+                  <div className="p-4 border-b border-[#27272a] flex items-center justify-between shrink-0">
                     <h3 className="font-bold text-sm text-slate-100">
                       {editingProduct ? 'Chỉnh Sửa Sản Phẩm Pet Shop' : 'Thêm Sản Phẩm Mới Vào Kho'}
                     </h3>
                     <button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
                   </div>
 
-                  <form onSubmit={handleSaveProduct} className="p-5 space-y-3.5 text-xs">
+                  <form onSubmit={handleSaveProduct} className="p-5 space-y-3.5 text-xs overflow-y-auto flex-1 sidebar-scroll">
                     <div>
                       <label className="block font-bold text-slate-300 uppercase mb-1">Tên sản phẩm *</label>
                       <input
