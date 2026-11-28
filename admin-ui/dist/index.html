@@ -1787,11 +1787,15 @@
           };
 
           try {
+            const apiBase = window.location.hostname === 'localhost'
+              ? 'http://localhost:3000'
+              : 'https://meocung-ecommerce-atoan.vercel.app';
             if (editingProduct) {
-              await fetch(getCmsApiCandidates('/api/medusa/products')[0], {
-                method: 'PUT',
+              const payload = { id: editingProduct.id, ...productForm, category_name: catNames[productForm.category] || 'Sản phẩm Mèo Cưng' };
+              await fetch(`${apiBase}/api/admin/products`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: editingProduct.id, ...productForm })
+                body: JSON.stringify(payload)
               });
               setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...productForm, categoryName: catNames[productForm.category] } : p));
             } else {
@@ -1800,9 +1804,10 @@
                 id: newId,
                 ...productForm,
                 categoryName: catNames[productForm.category],
+                category_name: catNames[productForm.category],
                 status: 'published'
               };
-              await fetch(getCmsApiCandidates('/api/medusa/products')[0], {
+              await fetch(`${apiBase}/api/admin/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -4888,15 +4893,26 @@
                       </div>
 
                       <div>
-                        <label className="block font-bold text-slate-300 uppercase mb-1">Quy cách (Trọng lượng)</label>
+                        <label className="block font-bold text-slate-300 uppercase mb-1">Quy cách</label>
                         <input
                           type="text"
                           value={productForm.weight}
                           onChange={(e) => setProductForm({ ...productForm, weight: e.target.value })}
-                          placeholder="VD: 1kg, 2kg, 6L..."
+                          placeholder="VD: Size L, Túi, Lon..."
                           className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-300 uppercase mb-1">Khối lượng thực</label>
+                      <input
+                        type="text"
+                        value={productForm.actual_weight || ''}
+                        onChange={(e) => setProductForm({ ...productForm, actual_weight: e.target.value })}
+                        placeholder="VD: 500g, 1.5kg, 4kg, 6L..."
+                        className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
