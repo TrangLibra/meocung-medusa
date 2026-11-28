@@ -1161,6 +1161,7 @@
                 { id: 'policies', label: '4 Thẻ Chính Sách Pastel', visible: true },
                 { id: 'banners', label: 'Dải Banner Quảng Cáo & Slider', visible: true },
                 { id: 'categories', label: 'Danh Mục Nổi Bật', visible: true },
+                { id: 'category_products', label: 'Sản Phẩm Theo Từng Danh Mục', visible: true },
                 { id: 'products', label: 'Sản Phẩm Nổi Bật', visible: true },
                 { id: 'blog', label: 'Cẩm Nang Nuôi Mèo Mới Nhất', visible: true },
               ],
@@ -4547,6 +4548,67 @@
                           <label className="block font-bold text-slate-300 mb-1">Tiêu đề mục Cẩm nang</label>
                           <input type="text" value={siteSettings.pages_config?.home?.blog_title || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_title: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
                         </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Mô tả ngắn mục Danh mục</label>
+                          <input type="text" placeholder="Đầy đủ các dòng thức ăn hạt, pate thơm ngon..." value={siteSettings.pages_config?.home?.categories_subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, categories_subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Mô tả ngắn mục Tin tức / Cẩm nang</label>
+                          <input type="text" placeholder="Kiến thức chăm sóc mèo chuẩn khoa học..." value={siteSettings.pages_config?.home?.blog_subtitle || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_subtitle: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Số SP hiển thị / mỗi danh mục</label>
+                          <select value={siteSettings.pages_config?.home?.products_per_category || 4} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, products_per_category: Number(e.target.value) } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                            <option value={2}>2 sản phẩm</option>
+                            <option value={4}>4 sản phẩm (1 hàng)</option>
+                            <option value={8}>8 sản phẩm (2 hàng)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Số bài viết Tin tức trên Trang chủ</label>
+                          <select value={siteSettings.pages_config?.home?.blog_count || 3} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, blog_count: Number(e.target.value) } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                            <option value={3}>3 bài viết</option>
+                            <option value={6}>6 bài viết</option>
+                          </select>
+                        </div>
+                        <label className="flex items-center gap-2 text-slate-200 font-semibold pt-4 cursor-pointer">
+                          <input type="checkbox" checked={Boolean(siteSettings.pages_config?.home?.hide_empty_categories)} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hide_empty_categories: e.target.checked } } })} className="accent-orange-500" />
+                          <span>Ẩn danh mục chưa có sản phẩm</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Khối 4: Chỉnh sửa 4 Thẻ Chính Sách Pastel */}
+                    <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3 text-xs">
+                      <h4 className="font-bold text-amber-400 uppercase">4. Tùy Chỉnh 4 Thẻ Chính Sách Pastel</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {(() => {
+                          const defaultPols = [
+                            { title: 'Sản phẩm an toàn', subtitle: '100% nguồn gốc rõ ràng', bgColor: '#FAF7CA', icon: '🛡️', href: '/chinh-sach#chinh-hang' },
+                            { title: 'Chất lượng chính hãng', subtitle: 'Hạt & pate dinh dưỡng cao', bgColor: '#E3FFD3', icon: '✨', href: '/chinh-sach#chinh-hang' },
+                            { title: 'Đổi trả 7 ngày', subtitle: 'Hoàn tiền nhanh nếu lỗi NSX', bgColor: '#FED5DC', icon: '🎖️', href: '/chinh-sach#doi-tra' },
+                            { title: 'Giao hàng hoả tốc', subtitle: 'Nhanh chóng trong 2h tại HCM', bgColor: '#E4E7FF', icon: '🚀', href: '/chinh-sach#giao-hang' },
+                          ];
+                          const pols = Array.isArray(siteSettings.pages_config?.home?.policies) && siteSettings.pages_config.home.policies.length === 4 ? siteSettings.pages_config.home.policies : defaultPols;
+                          const updatePol = (idx, field, val) => {
+                            const next = pols.map((p, i) => (i === idx ? { ...p, [field]: val } : p));
+                            setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, policies: next } } });
+                          };
+                          return pols.map((pol, idx) => (
+                            <div key={idx} className="p-3 rounded-lg bg-[#121214] border border-[#27272a] space-y-2">
+                              <div className="flex items-center gap-2">
+                                <input type="text" value={pol.icon || ''} onChange={(e) => updatePol(idx, 'icon', e.target.value)} className="w-12 text-center bg-[#18181b] border border-[#3f3f46] py-1 rounded text-slate-100" />
+                                <input type="text" value={pol.title || ''} onChange={(e) => updatePol(idx, 'title', e.target.value)} placeholder="Tiêu đề thẻ" className="flex-1 bg-[#18181b] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-100 font-bold" />
+                                <input type="color" value={pol.bgColor || '#FAF7CA'} onChange={(e) => updatePol(idx, 'bgColor', e.target.value)} className="w-8 h-7 rounded cursor-pointer bg-transparent" />
+                              </div>
+                              <input type="text" value={pol.subtitle || ''} onChange={(e) => updatePol(idx, 'subtitle', e.target.value)} placeholder="Mô tả ngắn" className="w-full bg-[#18181b] border border-[#3f3f46] px-2.5 py-1 rounded text-slate-300" />
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </form>
