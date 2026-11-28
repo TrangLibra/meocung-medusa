@@ -1967,7 +1967,16 @@
                   setPosts((prev) => {
                     const seen = new Set();
                     const merged = [];
-                    for (const item of [...postData.docs, ...(prev || [])]) {
+                    const normalizedDocs = postData.docs.map((d) => ({
+                      ...d,
+                      image: d.image || d.thumbnail || d.coverImage || '',
+                      thumbnail: d.image || d.thumbnail || d.coverImage || '',
+                      coverImage: d.image || d.thumbnail || d.coverImage || '',
+                      excerpt: d.excerpt || d.summary || d.description || '',
+                      summary: d.excerpt || d.summary || d.description || '',
+                      description: d.excerpt || d.summary || d.description || '',
+                    }));
+                    for (const item of [...normalizedDocs, ...(prev || [])]) {
                       const key = String(item.id || item.slug || item.title || '');
                       if (!key || seen.has(key)) continue;
                       seen.add(key);
@@ -5773,9 +5782,11 @@
         const [isResizing, setIsResizing] = useState(false);
         const [input, setInput] = useState('');
         const [attachedImage, setAttachedImage] = useState('');
+        const [lastSentImage, setLastSentImage] = useState('');
         const [excelFileName, setExcelFileName] = useState('');
         const [excelRows, setExcelRows] = useState([]);
         const [folderImages, setFolderImages] = useState({});
+        const [attachedFiles, setAttachedFiles] = useState([]);
         const [attachMenuOpen, setAttachMenuOpen] = useState(false);
         const [loading, setLoading] = useState(false);
         const fileInputRef = useRef(null);
@@ -5865,6 +5876,68 @@
           reader.readAsDataURL(file);
         });
 
+        const handlePickAnyFiles = async (e) => {
+          const files = Array.from(e.target.files || []);
+          if (!files.length) return;
+          const excelFile = files.find((f) => /\.(xlsx|xls|csv)$/i.test(f.name));
+          const imgFiles = files.filter((f) => f.type.startsWith('image/') && !/\.svg$/i.test(f.name));
+          const docFiles = files.filter((f) => !/\.(xlsx|xls|csv)$/i.test(f.name) && (!f.type.startsWith('image/') || /\.svg$/i.test(f.name)));
+
+          if (docFiles.length > 0) {
+            const parsedDocs = [];
+            for (const df of docFiles.slice(0, 5)) {
+              const isTextLike = /\.(txt|md|json|svg|xml|html|htm|js|ts|css|log)$/i.test(df.name) || (df.type && df.type.startsWith('text/'));
+              if (isTextLike) {
+                const txt = await df.text().catch(() => '');
+                parsedDocs.push({ name: df.name, mimeType: df.type || 'text/plain', textContent: txt.slice(0, 25000) });
+              } else {
+                const b64 = await new Promise((resolve) => {
+                  const r = new FileReader();
+                  r.onload = () => resolve(String(r.result || '').split(',')[1] || '');
+                  r.onerror = () => resolve('');
+                  r.readAsDataURL(df);
+                });
+                parsedDocs.push({ name: df.name, mimeType: df.type || 'application/octet-stream', base64: b64 });
+              }
+            }
+            if (parsedDocs.length > 0) {
+              setAttachedFiles((prev) => [...prev, ...parsedDocs]);
+            }
+          }
+
+          if (excelFile) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              try {
+                const wb = window.XLSX.read(ev.target.result, { type: 'array' });
+                const firstSheet = wb.SheetNames[0];
+                const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[firstSheet], { defval: '' });
+                setExcelFileName(excelFile.name);
+                setExcelRows(rows);
+              } catch (_err) {
+                alert('Không đọc được file Excel. Vui lòng kiểm tra định dạng .xlsx / .xls / .csv');
+              }
+            };
+            reader.readAsArrayBuffer(excelFile);
+          }
+
+          if (imgFiles.length === 1 && !excelFile) {
+            const dataUrl = await compressImageFile(imgFiles[0]);
+            if (dataUrl) setAttachedImage(dataUrl);
+          } else if (imgFiles.length > 0) {
+            const map = { ...folderImages };
+            for (const f of imgFiles.slice(0, 60)) {
+              const dataUrl = await compressImageFile(f);
+              if (dataUrl) {
+                map[f.name.toLowerCase()] = dataUrl;
+                map[f.name.replace(/\.[^.]+$/, '').toLowerCase()] = dataUrl;
+              }
+            }
+            setFolderImages(map);
+          }
+          e.target.value = '';
+        };
+
         const handlePickExcel = (e) => {
           const file = e.target.files && e.target.files[0];
           if (!file) return;
@@ -5901,9 +5974,13 @@
         };
 
         const sendMessage = async (textOverride) => {
-          const msg = (textOverride !== undefined ? textOverride : input).trim() || (excelRows.length > 0 ? `Nhập ${excelRows.length} sản phẩm từ Excel` : '');
+          const msg = (textOverride !== undefined ? textOverride : input).trim()
+            || (excelRows.length > 0 ? `Nhập ${excelRows.length} sản phẩm từ Excel` : '')
+            || (attachedFiles.length > 0 ? `Đọc nội dung file ${attachedFiles.map((f) => f.name).join(', ')} và xử lý` : '');
           if (!msg || loading) return;
-          const imgToSend = attachedImage;
+          const filesToSend = attachedFiles;
+          const imgToSend = attachedImage || (/(ảnh|hình).*(trước|vừa gửi|ở trên)/i.test(msg) ? lastSentImage : '');
+          if (attachedImage) setLastSentImage(attachedImage);
           const enrichedExcelRows = excelRows.map((row) => {
             const copy = { ...row };
             const imgKey = Object.keys(copy).find((k) => /^(ảnh|anh|hình|hinh|image|img|photo|thumbnail|url ảnh|link ảnh|file ảnh)/i.test(k.trim()));
@@ -5929,12 +6006,13 @@
             ...prev,
             {
               role: 'user',
-              text: `${msg}${excelRows.length ? `\n📊 File: ${excelFileName} (${excelRows.length} dòng)` : ''}${Object.keys(folderImages).length ? ` • 📁 Đã chọn thư mục ảnh` : ''}`,
+              text: `${msg}${excelRows.length ? `\n📊 File: ${excelFileName} (${excelRows.length} dòng)` : ''}${filesToSend.length ? `\n📎 File: ${filesToSend.map((f) => f.name).join(', ')}` : ''}${Object.keys(folderImages).length ? ` • 📁 Đã chọn thư mục ảnh` : ''}`,
               image: imgToSend || undefined,
             },
           ]);
           setInput('');
           setAttachedImage('');
+          setAttachedFiles([]);
           setExcelFileName('');
           setExcelRows([]);
           setLoading(true);
@@ -5952,11 +6030,12 @@
                   message: msg,
                   image: imgToSend || undefined,
                   excelRows: enrichedExcelRows.length ? enrichedExcelRows : undefined,
+                  files: filesToSend.length ? filesToSend : undefined,
                 }),
               });
               const data = await res.json().catch(() => ({}));
               if (res.ok) {
-                setMessages((prev) => [...prev, { role: 'ai', text: data.reply || 'Đã hoàn tất!' }]);
+                setMessages((prev) => [...prev, { role: 'ai', text: data.reply || 'Đã hoàn tất!', link: data.link || null }]);
                 if (data.actionExecuted) {
                   window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { targets: data.refreshTargets || [] } }));
                 }
@@ -6017,6 +6096,18 @@
                       <img src={m.image} alt="Đính kèm" className="w-40 h-28 object-cover rounded-xl mb-2 border border-white/20" />
                     )}
                     {m.text}
+                    {m.link && (
+                      <div className="mt-2 pt-1.5 border-t border-white/10">
+                        <a
+                          href={m.link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 underline font-bold text-xs inline-flex items-center gap-1"
+                        >
+                          {m.link.label}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -6046,7 +6137,7 @@
                   </div>
                 )}
 
-                {(excelRows.length > 0 || Object.keys(folderImages).length > 0) && (
+                {(excelRows.length > 0 || attachedFiles.length > 0 || Object.keys(folderImages).length > 0) && (
                   <div className="flex flex-wrap items-center gap-1.5 pb-1">
                     {excelRows.length > 0 && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 text-[10px] font-bold">
@@ -6054,6 +6145,12 @@
                         <button type="button" onClick={() => { setExcelFileName(''); setExcelRows([]); }} className="ml-1 text-rose-400">✕</button>
                       </span>
                     )}
+                    {attachedFiles.map((af, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-950/80 border border-amber-700/60 text-amber-300 text-[10px] font-bold">
+                        📎 {af.name}
+                        <button type="button" onClick={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== idx))} className="ml-1 text-rose-400">✕</button>
+                      </span>
+                    ))}
                     {Object.keys(folderImages).length > 0 && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 text-[10px] font-bold">
                         📁 {Math.round(Object.keys(folderImages).length / 2)} ảnh trong thư mục
@@ -6082,60 +6179,19 @@
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
-                      onChange={handlePickImage}
-                      className="hidden"
-                    />
-                    <input
-                      ref={excelInputRef}
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handlePickExcel}
-                      className="hidden"
-                    />
-                    <input
-                      ref={folderInputRef}
-                      type="file"
-                      webkitdirectory=""
-                      directory=""
                       multiple
-                      accept="image/*"
-                      onChange={handlePickImageFolder}
+                      accept="*/*"
+                      onChange={handlePickAnyFiles}
                       className="hidden"
                     />
                     <button
                       type="button"
-                      onClick={() => setAttachMenuOpen((v) => !v)}
-                      title="Đính kèm ảnh, file Excel hoặc thư mục ảnh"
+                      onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                      title="Đính kèm bất kỳ file nào (Ảnh, PDF, DOCX, Excel, SVG, TXT...)"
                       className="w-8 h-8 rounded-full bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] text-slate-200 flex items-center justify-center text-sm font-bold"
                     >
                       +
                     </button>
-                    {attachMenuOpen && (
-                      <div className="absolute bottom-10 left-0 w-44 rounded-xl bg-[#18181b] border border-[#3f3f46] shadow-xl p-1.5 z-50 flex flex-col gap-0.5 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => { setAttachMenuOpen(false); fileInputRef.current && fileInputRef.current.click(); }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#27272a] text-slate-200 flex items-center gap-2 font-medium"
-                        >
-                          <span>📷</span><span>Chọn ảnh</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAttachMenuOpen(false); excelInputRef.current && excelInputRef.current.click(); }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#27272a] text-emerald-400 flex items-center gap-2 font-medium"
-                        >
-                          <span>📊</span><span>Chọn file Excel</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAttachMenuOpen(false); folderInputRef.current && folderInputRef.current.click(); }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#27272a] text-indigo-300 flex items-center gap-2 font-medium"
-                        >
-                          <span>📁</span><span>Chọn thư mục ảnh</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   <button
