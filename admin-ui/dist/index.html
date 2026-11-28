@@ -669,6 +669,135 @@
           alert(`Đã áp dụng Flash Sale -${pct}% cho ${targets.length} sản phẩm!`);
         };
 
+        // ĐĂNG NHẬP ADMIN + PHÂN QUYỀN RBAC + CÀI ĐẶT HỆ THỐNG (SETTINGS)
+        const [adminUser, setAdminUser] = useState(() => {
+          try {
+            const saved = localStorage.getItem('meocung_admin_user');
+            return saved ? JSON.parse(saved) : null;
+          } catch (_) { return null; }
+        });
+        const [loginEmail, setLoginEmail] = useState('admin@gmail.com');
+        const [loginPassword, setLoginPassword] = useState('');
+        const [loginLoading, setLoginLoading] = useState(false);
+        const [loginError, setLoginError] = useState('');
+
+        const [sysSettings, setSysSettings] = useState({
+          store_name: 'Mèo Cưng Pet Shop',
+          support_email: 'hotro@meocung.vn',
+          support_hotline: '0382 542 737',
+          warehouse_address: '123 Cầu Giấy, Hà Nội',
+          currency: 'VND',
+          tax_percent: 0,
+          low_stock_threshold: 10,
+          enable_cod: true,
+          enable_bank_qr: true,
+          bank_name: 'Vietcombank',
+          bank_account_no: '',
+          bank_account_name: 'MEO CUNG PET SHOP',
+          notify_new_order_email: true,
+          auto_confirm_order: false,
+        });
+        const [sysSaving, setSysSaving] = useState(false);
+        const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+
+        const handleAdminLogin = async (e) => {
+          e.preventDefault();
+          setLoginLoading(true);
+          setLoginError('');
+          let lastErr = 'Không thể kết nối máy chủ xác thực';
+          for (const url of getCmsApiCandidates('/api/admin/auth')) {
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok && data.user) {
+                localStorage.setItem('meocung_admin_user', JSON.stringify(data.user));
+                setAdminUser(data.user);
+                setLoginPassword('');
+                setLoginLoading(false);
+                return;
+              }
+              if (data.error) lastErr = data.error;
+              if (res.status === 401 || res.status === 403) break;
+            } catch (_) {}
+          }
+          setLoginError(lastErr);
+          setLoginLoading(false);
+        };
+
+        const handleAdminLogout = () => {
+          localStorage.removeItem('meocung_admin_user');
+          setAdminUser(null);
+        };
+
+        const fetchSystemSettings = async () => {
+          for (const url of getCmsApiCandidates('/api/admin/settings')) {
+            try {
+              const res = await fetch(url);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.settings) { setSysSettings(data.settings); return; }
+              }
+            } catch (_) {}
+          }
+        };
+
+        useEffect(() => {
+          if (adminUser && activeTab === 'settings') {
+            fetchSystemSettings();
+          }
+        }, [activeTab, adminUser]);
+
+        const handleSaveSystemSettings = async (e) => {
+          e.preventDefault();
+          setSysSaving(true);
+          for (const url of getCmsApiCandidates('/api/admin/settings')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings: sysSettings }),
+              });
+              if (res.ok) {
+                setSysSaving(false);
+                alert('Đã lưu Cài Đặt Hệ Thống vào Neon DB!');
+                return;
+              }
+            } catch (_) {}
+          }
+          setSysSaving(false);
+          alert('Không thể lưu cài đặt.');
+        };
+
+        const handleChangeAdminPassword = async (e) => {
+          e.preventDefault();
+          if (pwdForm.new_password !== pwdForm.confirm_password) {
+            return alert('Mật khẩu xác nhận không khớp!');
+          }
+          for (const url of getCmsApiCandidates('/api/admin/auth')) {
+            try {
+              const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: adminUser?.email,
+                  current_password: pwdForm.current_password,
+                  new_password: pwdForm.new_password,
+                }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok) {
+                setPwdForm({ current_password: '', new_password: '', confirm_password: '' });
+                return alert('Đã đổi mật khẩu thành công!');
+              }
+              return alert(data.error || 'Không thể đổi mật khẩu');
+            } catch (_) {}
+          }
+        };
+
         const fetchOrders = async (overrideSearch, overrideStatus) => {
           setOrdersLoading(true);
           setOrderError('');
@@ -965,6 +1094,8 @@
                   setSiteSettings((prev) => ({ ...prev, logo_url: data.url }));
                 } else if (target === 'banner') {
                   setBannerForm((prev) => ({ ...prev, image_url: data.url }));
+                } else if (target === 'hero_image') {
+                  setSiteSettings((prev) => ({ ...prev, pages_config: { ...prev.pages_config, home: { ...prev.pages_config?.home, hero_image: data.url } } }));
                 }
                 setUploadingTarget(null);
                 return;
@@ -1828,6 +1959,63 @@
           (p.title || '').toLowerCase().includes(postSearch.toLowerCase())
         );
 
+        if (!adminUser) {
+          return (
+            <div className="min-h-screen w-screen bg-[#121214] flex items-center justify-center p-4 font-sans">
+              <div className="w-full max-w-md bg-[#18181b] border border-[#27272a] rounded-2xl shadow-2xl overflow-hidden">
+                <div className="p-6 border-b border-[#27272a] bg-gradient-to-r from-orange-500/15 to-indigo-500/10 flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-xl shadow">
+                    🐾
+                  </div>
+                  <div>
+                    <h1 className="text-base font-extrabold text-slate-100">Mèo Cưng Unified Admin</h1>
+                    <p className="text-[11px] text-orange-400 font-semibold">MEDUSAJS + PAYLOADCMS • ĐĂNG NHẬP QUẢN TRỊ</p>
+                  </div>
+                </div>
+                <form onSubmit={handleAdminLogin} className="p-6 space-y-4 text-xs">
+                  {loginError && (
+                    <div className="p-3 rounded-lg bg-rose-950/70 border border-rose-800/60 text-rose-300 font-medium">
+                      ⚠️ {loginError}
+                    </div>
+                  )}
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1.5">Email Quản Trị / Nhân Viên</label>
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="admin@gmail.com"
+                      className="w-full bg-[#121214] border border-[#3f3f46] px-3.5 py-2.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1.5">Mật Khẩu</label>
+                    <input
+                      type="password"
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="Nhập mật khẩu quản trị..."
+                      className="w-full bg-[#121214] border border-[#3f3f46] px-3.5 py-2.5 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loginLoading}
+                    className="w-full py-2.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm transition-colors shadow-lg shadow-orange-950/50"
+                  >
+                    {loginLoading ? '⏳ Đang xác thực...' : '🔐 Đăng Nhập Trang Quản Trị'}
+                  </button>
+                  <p className="text-[11px] text-slate-500 text-center pt-1">
+                    Xác thực trực tiếp trên Neon PostgreSQL (bảng <span className="font-mono text-slate-400">users</span> & phân quyền RBAC).
+                  </p>
+                </form>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="flex h-screen w-screen overflow-hidden bg-[#121214] font-sans">
             {/* SIDEBAR TỔNG HỢP DUY NHẤT */}
@@ -2106,11 +2294,42 @@
                       </div>
                     </div>
                   </div>
+
+                  {/* HỆ THỐNG & CÀI ĐẶT */}
+                  <div className="pt-2 border-t border-[#27272a]">
+                    <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <span>⚙️ HỆ THỐNG</span>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('settings')}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${
+                        activeTab === 'settings'
+                          ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
+                          : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                      }`}
+                    >
+                      <span>⚙️</span>
+                      <span>Cài Đặt Hệ Thống</span>
+                    </button>
+                  </div>
                 </nav>
               </div>
 
-              {/* Bottom: Storefront Link */}
-              <div className="p-3 border-t border-[#27272a] bg-[#141416]">
+              {/* Bottom: Logged-in Admin + Logout + Storefront Link */}
+              <div className="p-3 border-t border-[#27272a] bg-[#141416] space-y-2">
+                <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a]">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-slate-200 truncate">{adminUser?.email}</div>
+                    <div className="text-[10px] text-orange-400 font-semibold truncate">{adminUser?.role_name || adminUser?.role}</div>
+                  </div>
+                  <button
+                    onClick={handleAdminLogout}
+                    title="Đăng xuất"
+                    className="shrink-0 px-2 py-1 rounded bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/50 text-[10px] font-bold"
+                  >
+                    🚪 Thoát
+                  </button>
+                </div>
                 <a
                   href={STOREFRONT_URL}
                   target="_blank"
@@ -2136,6 +2355,7 @@
                     {activeTab === 'price_lists' && 'Medusa Pricing: Bảng Giá Niêm Yết & Khuyến Mãi'}
                     {activeTab === 'staff' && 'Hệ Thống: Quản Lý Nhân Viên Quản Trị'}
                     {activeTab === 'roles' && 'Hệ Thống: Phân Quyền Vai Trò Chi Tiết (RBAC)'}
+                    {activeTab === 'settings' && 'Hệ Thống: Cài Đặt Cửa Hàng, Thanh Toán & Bảo Mật'}
                     {activeTab === 'products' && 'Medusa Commerce: Quản Lý Sản Phẩm Hạt, Pate & Tồn Kho'}
                     {activeTab === 'orders' && 'Medusa Fulfillment: Quản Lý Đơn Hàng'}
                     {activeTab === 'shipping_zones' && 'Medusa Shipping: Khu Vực Giao Hàng & Biểu Phí'}
@@ -3513,6 +3733,109 @@
                   </div>
                 )}
 
+                {/* TAB CÀI ĐẶT HỆ THỐNG (SETTINGS) */}
+                {activeTab === 'settings' && (
+                  <div className="space-y-6 max-w-5xl mx-auto">
+                    <form onSubmit={handleSaveSystemSettings} className="space-y-5 text-xs">
+                      <div className="flex items-center justify-between bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
+                        <div>
+                          <h3 className="font-bold text-slate-100 text-sm">⚙️ Cài Đặt Chung & Thanh Toán (Neon DB)</h3>
+                          <p className="text-xs text-slate-400">Quản lý thông tin cửa hàng, kho mặc định, cổng thanh toán và ngưỡng cảnh báo tồn kho.</p>
+                        </div>
+                        <button type="submit" disabled={sysSaving} className="px-4 py-2 font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg">
+                          {sysSaving ? '⏳ Đang lưu...' : '💾 Lưu Cài Đặt'}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3.5">
+                          <h4 className="font-bold text-orange-400 uppercase text-[11px]">🏪 Thông Tin Cửa Hàng & Kho</h4>
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Tên cửa hàng</label>
+                            <input type="text" value={sysSettings.store_name || ''} onChange={(e) => setSysSettings({ ...sysSettings, store_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Email hỗ trợ</label>
+                              <input type="email" value={sysSettings.support_email || ''} onChange={(e) => setSysSettings({ ...sysSettings, support_email: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                            </div>
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Hotline</label>
+                              <input type="text" value={sysSettings.support_hotline || ''} onChange={(e) => setSysSettings({ ...sysSettings, support_hotline: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Địa chỉ kho lấy hàng mặc định</label>
+                            <input type="text" value={sysSettings.warehouse_address || ''} onChange={(e) => setSysSettings({ ...sysSettings, warehouse_address: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Tiền tệ</label>
+                              <select value={sysSettings.currency || 'VND'} onChange={(e) => setSysSettings({ ...sysSettings, currency: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100">
+                                <option value="VND">VND (₫)</option>
+                                <option value="USD">USD ($)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Thuế VAT (%)</label>
+                              <input type="number" min="0" max="30" value={sysSettings.tax_percent || 0} onChange={(e) => setSysSettings({ ...sysSettings, tax_percent: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                            </div>
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Cảnh báo tồn &lt;</label>
+                              <input type="number" min="1" value={sysSettings.low_stock_threshold || 10} onChange={(e) => setSysSettings({ ...sysSettings, low_stock_threshold: Number(e.target.value) })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-amber-400 font-bold" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-3.5">
+                          <h4 className="font-bold text-indigo-400 uppercase text-[11px]">💳 Phương Thức Thanh Toán & Vận Hành</h4>
+                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
+                            <span className="font-semibold text-slate-200">Thanh toán khi nhận hàng (COD)</span>
+                            <input type="checkbox" checked={sysSettings.enable_cod !== false} onChange={(e) => setSysSettings({ ...sysSettings, enable_cod: e.target.checked })} className="accent-orange-500" />
+                          </label>
+                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
+                            <span className="font-semibold text-slate-200">Chuyển khoản Ngân hàng / VietQR</span>
+                            <input type="checkbox" checked={sysSettings.enable_bank_qr !== false} onChange={(e) => setSysSettings({ ...sysSettings, enable_bank_qr: e.target.checked })} className="accent-orange-500" />
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Ngân hàng</label>
+                              <input type="text" value={sysSettings.bank_name || ''} onChange={(e) => setSysSettings({ ...sysSettings, bank_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                            </div>
+                            <div>
+                              <label className="block font-bold text-slate-300 mb-1">Số tài khoản</label>
+                              <input type="text" value={sysSettings.bank_account_no || ''} onChange={(e) => setSysSettings({ ...sysSettings, bank_account_no: e.target.value })} placeholder="VD: 0123456789" className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 font-mono" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block font-bold text-slate-300 mb-1">Tên chủ tài khoản</label>
+                            <input type="text" value={sysSettings.bank_account_name || ''} onChange={(e) => setSysSettings({ ...sysSettings, bank_account_name: e.target.value })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 uppercase" />
+                          </div>
+                          <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#121214] border border-[#27272a] cursor-pointer">
+                            <span className="font-semibold text-slate-200">Gửi email thông báo khi có đơn hàng mới</span>
+                            <input type="checkbox" checked={sysSettings.notify_new_order_email !== false} onChange={(e) => setSysSettings({ ...sysSettings, notify_new_order_email: e.target.checked })} className="accent-orange-500" />
+                          </label>
+                        </div>
+                      </div>
+                    </form>
+
+                    <form onSubmit={handleChangeAdminPassword} className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-4 text-xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-emerald-400 uppercase text-[11px]">🔐 Bảo Mật Tài Khoản Cá Nhân ({adminUser?.email})</h4>
+                          <p className="text-slate-400 mt-0.5">Đổi mật khẩu đăng nhập cho tài khoản quản trị hiện tại.</p>
+                        </div>
+                        <button type="submit" className="px-4 py-2 font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg">🔑 Đổi Mật Khẩu</button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input type="password" required placeholder="Mật khẩu hiện tại" value={pwdForm.current_password} onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        <input type="password" required placeholder="Mật khẩu mới (>= 6 ký tự)" value={pwdForm.new_password} onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        <input type="password" required placeholder="Nhập lại mật khẩu mới" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({ ...pwdForm, confirm_password: e.target.value })} className="bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                      </div>
+                    </form>
+                  </div>
+                )}
+
                 {/* 6. TAB CUSTOMERS (NEON POSTGRESQL) */}
                 {activeTab === 'customers' && (
                   <div className="space-y-4 max-w-7xl mx-auto">
@@ -4179,6 +4502,36 @@
                         <div>
                           <label className="block font-bold text-slate-300 mb-1">Đường dẫn nút bấm</label>
                           <input type="text" value={siteSettings.pages_config?.home?.hero_btn_link || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_btn_link: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-300 font-mono" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[#27272a]">
+                        <div>
+                          <label className="flex items-center justify-between font-bold text-slate-300 mb-1">
+                            <span>Nút Hotline Hero</span>
+                            <input type="checkbox" checked={siteSettings.pages_config?.home?.hero_show_hotline !== false} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_show_hotline: e.target.checked } } })} className="accent-orange-500" />
+                          </label>
+                          <input type="text" placeholder={`Hotline: ${siteSettings.hotline || '0382542737'}`} value={siteSettings.pages_config?.home?.hero_hotline_label || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_hotline_label: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Icon Mascot góc phải (hoặc để trống)</label>
+                          <input type="text" placeholder="🐱" value={siteSettings.pages_config?.home?.hero_mascot ?? '🐱'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_mascot: e.target.value } } })} className="w-full bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-300 mb-1">Màu chữ trên Hero</label>
+                          <input type="color" value={siteSettings.pages_config?.home?.hero_text_color || '#ffffff'} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_text_color: e.target.value } } })} className="w-full h-9 bg-[#121214] border border-[#27272a] rounded-lg cursor-pointer" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block font-bold text-slate-300 mb-1">Ảnh nền Hero Banner (tùy chọn, phủ trên màu nền)</label>
+                        <div className="flex items-center gap-2">
+                          <input type="url" placeholder="https://..." value={siteSettings.pages_config?.home?.hero_image || ''} onChange={(e) => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_image: e.target.value } } })} className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100" />
+                          <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200">
+                            {uploadingTarget === 'hero_image' ? '⏳ Đang tải...' : '📁 Chọn ảnh'}
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadImage(f, 'hero_image'); e.target.value = ''; }} />
+                          </label>
+                          {siteSettings.pages_config?.home?.hero_image && (
+                            <button type="button" onClick={() => setSiteSettings({ ...siteSettings, pages_config: { ...siteSettings.pages_config, home: { ...siteSettings.pages_config?.home, hero_image: '' } } })} className="px-2.5 py-2 bg-rose-950/60 text-rose-400 border border-rose-800/40 rounded-lg font-bold">Xóa ảnh</button>
+                          )}
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-[#27272a]">
@@ -5087,6 +5440,7 @@
                         { tab: 'banners', label: '🖼️ Banner Quảng Cáo & Slider' },
                         { tab: 'coupons', label: '🏷️ Mã Giảm Giá & Voucher' },
                         { tab: 'site_hero', label: '🏠 Tùy Chỉnh Trang Chủ (Live Preview)' },
+                        { tab: 'settings', label: '⚙️ Cài Đặt Hệ Thống (Settings)' },
                       ].filter((n) => !q || n.label.toLowerCase().includes(q) || n.tab.includes(q));
                       const matchedProds = products.filter((p) => !q || (p.name || '').toLowerCase().includes(q) || (p.vendor || '').toLowerCase().includes(q)).slice(0, 5);
                       const matchedOrders = orders.filter((o) => !q || (o.order_code || '').toLowerCase().includes(q) || (o.customer_name || '').toLowerCase().includes(q)).slice(0, 5);
