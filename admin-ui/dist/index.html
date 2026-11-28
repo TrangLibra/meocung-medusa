@@ -1931,9 +1931,10 @@
               const apiBase = window.location.hostname === 'localhost'
                 ? 'http://localhost:3000'
                 : 'https://meocung-ecommerce-atoan.vercel.app';
-              const [prodRes, logRes] = await Promise.all([
+              const [prodRes, logRes, postRes] = await Promise.all([
                 fetch(`${apiBase}/api/admin/products`, { cache: 'no-store' }).catch(() => null),
                 fetch(`${apiBase}/api/admin/audit-logs`, { cache: 'no-store' }).catch(() => null),
+                fetch(`${apiBase}/api/posts`, { cache: 'no-store' }).catch(() => null),
               ]);
               if (prodRes && prodRes.ok) {
                 const data = await prodRes.json();
@@ -1958,6 +1959,22 @@
                 const logData = await logRes.json();
                 if (Array.isArray(logData?.logs)) {
                   setAuditLogs(logData.logs);
+                }
+              }
+              if (postRes && postRes.ok) {
+                const postData = await postRes.json();
+                if (Array.isArray(postData?.docs) && postData.docs.length > 0) {
+                  setPosts((prev) => {
+                    const seen = new Set();
+                    const merged = [];
+                    for (const item of [...postData.docs, ...(prev || [])]) {
+                      const key = String(item.id || item.slug || item.title || '');
+                      if (!key || seen.has(key)) continue;
+                      seen.add(key);
+                      merged.push(item);
+                    }
+                    return merged;
+                  });
                 }
               }
             } catch (_e) {}
