@@ -2156,22 +2156,22 @@
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 shrink-0">
                   {activeTab === 'products' && (
                     <button
                       onClick={handleOpenCreateProduct}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-orange-600 hover:bg-orange-500 rounded-lg shadow-sm transition-colors whitespace-nowrap shrink-0"
                     >
-                      <span>➕</span> Thêm Sản Phẩm Mới
+                      <span>➕</span> Thêm SP
                     </button>
                   )}
 
                   {activeTab === 'posts' && (
                     <button
                       onClick={handleOpenCreatePost}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm transition-colors whitespace-nowrap shrink-0"
                     >
-                      <span>➕</span> Viết Bài Cẩm Nang Mới
+                      <span>➕</span> Viết Bài Mới
                     </button>
                   )}
 
@@ -5247,7 +5247,138 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('root')).render(<SingleUnifiedDashboard />);
+      function AdminAiCopilot() {
+        const [open, setOpen] = useState(false);
+        const [input, setInput] = useState('');
+        const [loading, setLoading] = useState(false);
+        const [messages, setMessages] = useState([
+          {
+            role: 'ai',
+            text: 'Chào Admin! Mình là Trợ lý AI Mèo Cưng (Gemini). Bạn cứ nhắn mình để thao tác nhanh lên Neon:\n• "Tạo mã giảm giá SALE20 giảm 20% đơn tối thiểu 200k"\n• "Tạo mã freeship FREESHIP99 đơn tối thiểu 100k"\n• "Thêm sản phẩm Hạt Me-O cá ngừ giá 120k tồn kho 50"\n• "Đổi trạng thái đơn #MC310691 sang shipping"\n• "Thống kê đơn hàng và khách hàng hôm nay"',
+          },
+        ]);
+
+        const sendMessage = async (textOverride) => {
+          const msg = (textOverride !== undefined ? textOverride : input).trim();
+          if (!msg || loading) return;
+          setMessages((prev) => [...prev, { role: 'user', text: msg }]);
+          setInput('');
+          setLoading(true);
+
+          const endpoints = window.location.hostname === 'localhost'
+            ? ['http://localhost:3000/api/admin/ai-assistant', 'https://meocung-ecommerce-atoan.vercel.app/api/admin/ai-assistant']
+            : ['https://meocung-ecommerce-atoan.vercel.app/api/admin/ai-assistant'];
+
+          for (const url of endpoints) {
+            try {
+              const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg }),
+              });
+              const data = await res.json().catch(() => ({}));
+              if (res.ok) {
+                setMessages((prev) => [...prev, { role: 'ai', text: data.reply || 'Đã hoàn tất!' }]);
+                setLoading(false);
+                return;
+              } else {
+                setMessages((prev) => [...prev, { role: 'ai', text: `⚠️ ${data.error || 'Lỗi xử lý AI'}` }]);
+                setLoading(false);
+                return;
+              }
+            } catch (_e) {}
+          }
+          setMessages((prev) => [...prev, { role: 'ai', text: '⚠️ Không kết nối được API Trợ lý AI.' }]);
+          setLoading(false);
+        };
+
+        return (
+          <div className="fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3">
+            {open && (
+              <div className="w-[360px] max-w-[92vw] h-[480px] bg-[#18181b] border border-[#3f3f46] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#27272a] bg-gradient-to-r from-orange-600/20 to-indigo-600/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-orange-600 text-white flex items-center justify-center text-sm">✨</span>
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-100">Trợ Lý AI Admin (Gemini)</p>
+                      <p className="text-[10px] text-emerald-400">Thao tác trực tiếp Neon PostgreSQL</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-100 font-bold text-sm">✕</button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
+                  {messages.map((m, i) => (
+                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] px-3 py-2 rounded-xl whitespace-pre-line leading-relaxed ${
+                        m.role === 'user'
+                          ? 'bg-orange-600 text-white font-medium'
+                          : 'bg-[#121214] border border-[#27272a] text-slate-200'
+                      }`}>
+                        {m.text}
+                      </div>
+                    </div>
+                  ))}
+                  {loading && (
+                    <div className="text-[11px] text-slate-400 italic px-2">✨ Trợ lý AI đang thực thi...</div>
+                  )}
+                </div>
+
+                <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                  {[
+                    'Thống kê hôm nay',
+                    'Tạo mã FREESHIP99 freeship đơn 100k',
+                    'Tạo mã SALE15 giảm 15% đơn 150k',
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => sendMessage(q)}
+                      className="px-2 py-1 rounded-md bg-[#27272a] hover:bg-[#323238] text-[10px] text-slate-300 border border-[#3f3f46]"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+
+                <form
+                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                  className="p-2.5 border-t border-[#27272a] flex gap-2 bg-[#141416]"
+                >
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Nhập lệnh cho AI (tạo mã, thêm SP, sửa đơn)..."
+                    className="flex-1 px-3 py-2 text-xs rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100 outline-none focus:border-orange-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-3.5 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold disabled:opacity-50"
+                  >
+                    Gửi
+                  </button>
+                </form>
+              </div>
+            )}
+
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-extrabold text-xs shadow-xl shadow-orange-900/40 transition-transform hover:scale-105"
+            >
+              <span>✨</span>
+              <span>{open ? 'Đóng Trợ Lý AI' : 'Trợ Lý AI Admin'}</span>
+            </button>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('root')).render(
+        <React.Fragment>
+          <SingleUnifiedDashboard />
+          <AdminAiCopilot />
+        </React.Fragment>
+      );
     </script>
 </body>
 </html>
