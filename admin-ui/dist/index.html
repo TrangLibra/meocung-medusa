@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="./posts-data.js"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -356,7 +357,7 @@
         const [postsLoading, setPostsLoading] = useState(false);
         const [postSearch, setPostSearch] = useState('');
 
-        // Quản lý tài khoản khách hàng (lưu trực tiếp trên Neon PostgreSQL)
+        // Quản lý tài khoản khách hàng (lưu trực tiếp PostgreSQL)
         const [customers, setCustomers] = useState([]);
         const [customersLoading, setCustomersLoading] = useState(false);
         const [customerError, setCustomerError] = useState('');
@@ -397,7 +398,7 @@
               }
             } catch (_) {}
           }
-          setCustomerError('Chưa kết nối được API Neon (/api/admin/customers). Hãy chạy meocung-ecommerce-main ở cổng 3000 hoặc deploy lên Vercel.');
+          setCustomerError('Chưa kết nối được API (/api/admin/customers). Hãy chạy meocung-ecommerce-main ở cổng 3000 hoặc deploy lên Vercel.');
           setCustomersLoading(false);
         };
 
@@ -441,7 +442,7 @@
             setIsCustomerModalOpen(false);
             fetchCustomers();
           } catch (_e) {
-            alert('Lỗi kết nối tới API Neon!');
+            alert('Lỗi kết nối tới API!');
           }
         };
 
@@ -458,14 +459,14 @@
         };
 
         const handleDeleteCustomer = async (c) => {
-          if (!confirm(`Xóa vĩnh viễn tài khoản ${c.email} khỏi Neon PostgreSQL?`)) return;
+          if (!confirm(`Xóa vĩnh viễn tài khoản ${c.email}?`)) return;
           try {
             const res = await fetch(`${customerApiBase}/${c.id}`, { method: 'DELETE' });
             if (res.ok) fetchCustomers();
           } catch (_e) {}
         };
 
-        // Quản lý đơn hàng & vận chuyển (lưu trực tiếp trên Neon PostgreSQL)
+        // Quản lý đơn hàng & vận chuyển (lưu trực tiếp PostgreSQL)
         const INITIAL_ORDERS = [
           { id: 'ORD-9821', customer_name: 'Nguyễn Văn An', phone: '0912 345 678', product_name: 'Hạt Royal Canin Fit 32 (2kg)', total_amount: 185000, status: 'completed' },
           { id: 'ORD-9822', customer_name: 'Trần Thị Mai', phone: '0988 776 554', product_name: 'Pate Ciao Churu Gói 4 thanh', total_amount: 90000, status: 'shipping' },
@@ -646,7 +647,7 @@
         };
 
         const handleDeleteCommerceRule = async (id) => {
-          if (!confirm('Xóa quy tắc này khỏi Neon DB?')) return;
+          if (!confirm('Xóa quy tắc này?')) return;
           for (const url of getCmsApiCandidates(`/api/admin/commerce-rules?id=${id}`)) {
             try {
               const res = await fetch(url, { method: 'DELETE' });
@@ -660,7 +661,7 @@
           const cat = sale.config?.target_category || 'all';
           const targets = products.filter((p) => cat === 'all' || p.category === cat);
           if (!targets.length) return alert('Không có sản phẩm nào thuộc danh mục này.');
-          if (!confirm(`Áp dụng giảm ${pct}% lên ${targets.length} sản phẩm trong danh mục "${cat}" và lưu vào Neon DB?`)) return;
+          if (!confirm(`Áp dụng giảm ${pct}% lên ${targets.length} sản phẩm trong danh mục "${cat}" và lưu?`)) return;
           await Promise.all(targets.map((p) => {
             const orig = Number(p.originalPrice || p.price || 150000);
             const nextPrice = Math.max(1000, Math.round((orig * (1 - pct / 100)) / 1000) * 1000);
@@ -695,7 +696,7 @@
               }
             } catch (_) {}
           }
-          setOrderError('Chưa kết nối được API đơn hàng Neon (/api/admin/orders).');
+          setOrderError('Chưa kết nối được API đơn hàng (/api/admin/orders).');
           setOrdersLoading(false);
         };
 
@@ -735,14 +736,14 @@
         };
 
         const handleDeleteOrder = async (order) => {
-          if (!confirm(`Xóa đơn hàng #${order.order_code} khỏi Neon PostgreSQL?`)) return;
+          if (!confirm(`Xóa đơn hàng #${order.order_code}?`)) return;
           try {
             const res = await fetch(`${orderApiBase}/${order.id}`, { method: 'DELETE' });
             if (res.ok) fetchOrders();
           } catch (_e) {}
         };
 
-        // Quản lý Mã Giảm Giá & Voucher (lưu trực tiếp bảng public.voucher trên Neon PostgreSQL)
+        // Quản lý Mã Giảm Giá & Voucher (lưu trực tiếp bảng public.voucher PostgreSQL)
         const [vouchers, setVouchers] = useState([]);
         const [vouchersLoading, setVouchersLoading] = useState(false);
         const [voucherError, setVoucherError] = useState('');
@@ -794,7 +795,7 @@
               }
             } catch (_e) {}
           }
-          setVoucherError('Chưa kết nối được API Voucher Neon (/api/admin/vouchers).');
+          setVoucherError('Chưa kết nối được API Voucher (/api/admin/vouchers).');
           setVouchersLoading(false);
         };
 
@@ -883,7 +884,7 @@
             setIsVoucherModalOpen(false);
             fetchVouchers();
           } catch (_e) {
-            alert('Lỗi kết nối tới API Voucher Neon!');
+            alert('Lỗi kết nối tới API Voucher!');
           }
         };
 
@@ -899,7 +900,7 @@
         };
 
         const handleDeleteVoucher = async (v) => {
-          if (!confirm(`Xóa mã voucher ${v.code} khỏi bảng voucher trên Neon?`)) return;
+          if (!confirm(`Xóa mã voucher ${v.code}?`)) return;
           try {
             const res = await fetch(`${voucherApiBase}/${v.id}`, { method: 'DELETE' });
             if (res.ok) fetchVouchers();
@@ -1160,7 +1161,7 @@
             } catch (_) {}
           }
           setSiteSaving(false);
-          alert(ok ? 'Đã lưu cấu hình Logo / Navbar / Footer lên Neon Database & Website!' : 'Không kết nối được API lưu cấu hình!');
+          alert(ok ? 'Đã lưu cấu hình Logo / Navbar / Footer lên Website!' : 'Không kết nối được API lưu cấu hình!');
         };
 
         const [bannersList, setBannersList] = useState([]);
@@ -1668,6 +1669,8 @@
             inventory: 100,
             vendor: 'Mèo Cưng Official',
             image: '',
+            images: [],
+            sizes: [],
             description: '',
             variants: [],
             attributes: []
@@ -1677,6 +1680,12 @@
 
         const handleOpenEditProduct = (p) => {
           setEditingProduct(p);
+          const existingImages = Array.isArray(p.images) && p.images.length > 0
+            ? p.images
+            : (p.image ? [p.image] : []);
+          const existingSizes = Array.isArray(p.sizes)
+            ? p.sizes
+            : (Array.isArray(p.variants) ? p.variants.map(v => String(v.title || '').replace(/^Size\s+/i, '')).filter(s => ['S','M','L','XL','XXL'].includes(s.toUpperCase())) : []);
           setProductForm({
             name: p.name,
             category: p.category || 'thuc-an-hat',
@@ -1684,7 +1693,9 @@
             weight: p.weight || '1kg',
             inventory: p.inventory || 100,
             vendor: p.vendor || 'Mèo Cưng Official',
-            image: p.image || '',
+            image: existingImages[0] || p.image || '',
+            images: existingImages,
+            sizes: existingSizes,
             description: p.description || '',
             variants: Array.isArray(p.variants) ? p.variants : [],
             attributes: Array.isArray(p.attributes) ? p.attributes : []
@@ -1692,8 +1703,67 @@
           setIsProductModalOpen(true);
         };
 
+        const handleToggleProductSize = (size) => {
+          setProductForm((prev) => {
+            const curSizes = Array.isArray(prev.sizes) ? prev.sizes : [];
+            const exists = curSizes.includes(size);
+            const nextSizes = exists ? curSizes.filter((s) => s !== size) : [...curSizes, size];
+            const curVariants = Array.isArray(prev.variants) ? prev.variants : [];
+            const nextVariants = exists
+              ? curVariants.filter((v) => String(v.title || '').trim().toUpperCase() !== `SIZE ${size}`)
+              : [...curVariants, { title: `Size ${size}`, sku: `SZ-${size}`, price: Number(prev.price || 150000), inventory: Number(prev.inventory || 50) }];
+            return { ...prev, sizes: nextSizes, variants: nextVariants };
+          });
+        };
+
+        const handlePickMultipleProductImages = (files) => {
+          if (!files || !files.length) return;
+          Array.from(files).forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const img = new Image();
+              img.onload = () => {
+                const maxSide = 700;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxSide || h > maxSide) {
+                  if (w >= h) { h = Math.round((h * maxSide) / w); w = maxSide; }
+                  else { w = Math.round((w * maxSide) / h); h = maxSide; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                setProductForm((prev) => {
+                  const nextImages = [...(Array.isArray(prev.images) ? prev.images : (prev.image ? [prev.image] : [])), dataUrl];
+                  return { ...prev, images: nextImages, image: prev.image || nextImages[0] || '' };
+                });
+              };
+              img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+          });
+        };
+
+        const logAdminAction = (action, target, detail, items = []) => {
+          try {
+            const apiBase = window.location.hostname === 'localhost'
+              ? 'http://localhost:3000'
+              : 'https://meocung-ecommerce-atoan.vercel.app';
+            fetch(`${apiBase}/api/admin/audit-logs`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ actor: 'Admin (Thủ công)', action, target: target || '', detail: detail || '', items }),
+            }).then(() => {
+              window.dispatchEvent(new CustomEvent('admin-data-changed'));
+            }).catch(() => {});
+          } catch (_e) {}
+        };
+
         const handleDeleteProduct = async (id) => {
           if (!confirm('Xác nhận xóa sản phẩm khỏi kho hàng?')) return;
+          const targetProd = products.find(p => p.id === id);
           try {
             await fetch(`https://meocung-ecommerce-seven.vercel.app/api/medusa/products?id=${id}`, {
               method: 'DELETE'
@@ -1702,6 +1772,7 @@
             console.error('Error deleting product from DB:', e);
           }
           setProducts(products.filter(p => p.id !== id));
+          logAdminAction('Xóa sản phẩm', targetProd ? targetProd.name : id, `Đã xóa sản phẩm ${targetProd ? targetProd.name : id}`);
         };
 
         const handleSaveProduct = async (e) => {
@@ -1742,6 +1813,24 @@
             console.error('Error saving product to DB:', err);
           }
           setIsProductModalOpen(false);
+          logAdminAction(
+            editingProduct ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm mới',
+            productForm.name,
+            `Giá ${Number(productForm.price || 0).toLocaleString('vi-VN')}₫ • Tồn kho ${productForm.inventory || 0}`,
+            [
+              {
+                name: productForm.name,
+                sku: productForm.sku || '',
+                category: productForm.category || '',
+                weight: productForm.weight || '',
+                price: Number(productForm.price || 0),
+                inventory: Number(productForm.inventory || 0),
+                image: productForm.image || '',
+                description: productForm.description || '',
+                note: editingProduct ? 'Đã cập nhật thông tin sản phẩm' : 'Đã thêm mới sản phẩm',
+              },
+            ]
+          );
           alert('Đã lưu sản phẩm thành công vào cơ sở dữ liệu!');
         };
 
@@ -1828,20 +1917,85 @@
           (p.title || '').toLowerCase().includes(postSearch.toLowerCase())
         );
 
+        const [sidebarOpen, setSidebarOpen] = useState(true);
+        const [auditLogs, setAuditLogs] = useState([]);
+        const [selectedAuditLog, setSelectedAuditLog] = useState(null);
+
+        // Tự động làm mới dữ liệu khi AI thao tác, khi quay lại tab, hoặc định kỳ 15s (không cần F5)
+        useEffect(() => {
+          const refreshLiveData = async () => {
+            try {
+              const apiBase = window.location.hostname === 'localhost'
+                ? 'http://localhost:3000'
+                : 'https://meocung-ecommerce-atoan.vercel.app';
+              const [prodRes, logRes] = await Promise.all([
+                fetch(`${apiBase}/api/admin/products`, { cache: 'no-store' }).catch(() => null),
+                fetch(`${apiBase}/api/admin/audit-logs`, { cache: 'no-store' }).catch(() => null),
+              ]);
+              if (prodRes && prodRes.ok) {
+                const data = await prodRes.json();
+                if (Array.isArray(data?.products)) {
+                  setProducts(data.products.map((p) => ({
+                    id: p.id,
+                    sku: p.sku || '',
+                    name: p.name || '',
+                    category: p.category || 'thuc-an-hat',
+                    categoryName: p.category_name || 'Sản phẩm Mèo Cưng',
+                    price: Number(p.price) || 0,
+                    weight: p.weight || '',
+                    inventory: Number(p.inventory) || 0,
+                    vendor: p.vendor || 'Mèo Cưng Official',
+                    status: p.status || 'published',
+                    image: p.image || '',
+                    description: p.description || '',
+                  })));
+                }
+              }
+              if (logRes && logRes.ok) {
+                const logData = await logRes.json();
+                if (Array.isArray(logData?.logs)) {
+                  setAuditLogs(logData.logs);
+                }
+              }
+            } catch (_e) {}
+          };
+          refreshLiveData();
+          const onDataChanged = () => { refreshLiveData(); };
+          const onFocus = () => { refreshLiveData(); };
+          window.addEventListener('admin-data-changed', onDataChanged);
+          window.addEventListener('focus', onFocus);
+          const timer = setInterval(refreshLiveData, 15000);
+          return () => {
+            window.removeEventListener('admin-data-changed', onDataChanged);
+            window.removeEventListener('focus', onFocus);
+            clearInterval(timer);
+          };
+        }, []);
+
         return (
           <div className="flex h-screen w-screen overflow-hidden bg-[#121214] font-sans">
             {/* SIDEBAR TỔNG HỢP DUY NHẤT */}
-            <aside className="w-64 h-full border-r border-[#27272a] bg-[#18181b] flex flex-col justify-between shrink-0 select-none shadow-xl z-20 overflow-hidden">
-              <div className="flex-1 min-h-0 flex flex-col">
+            <aside className={`h-full border-r border-[#27272a] bg-[#18181b] flex flex-col justify-between shrink-0 select-none shadow-xl z-20 overflow-hidden transition-all duration-200 ${sidebarOpen ? 'w-64' : 'w-0 border-r-0'}`}>
+              <div className="flex-1 min-h-0 flex flex-col w-64">
                 {/* Logo & Info */}
-                <div className="p-4 border-b border-[#27272a] flex items-center gap-3 bg-gradient-to-r from-orange-500/10 to-transparent shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-base shadow-sm">
-                    🐾
+                <div className="p-4 border-b border-[#27272a] flex items-center justify-between gap-2 bg-gradient-to-r from-orange-500/10 to-transparent shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-black text-base shadow-sm shrink-0">
+                      🐾
+                    </div>
+                    <div className="min-w-0">
+                      <h1 className="font-bold text-sm text-slate-100 truncate">Mèo Cưng Unified</h1>
+                      <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider">Medusa + PayloadCMS</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h1 className="font-bold text-sm text-slate-100 truncate">Mèo Cưng Unified</h1>
-                    <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider">Medusa + PayloadCMS</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(false)}
+                    title="Thu gọn menu"
+                    className="w-9 h-9 rounded-xl bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center text-base font-black shadow-sm shrink-0 transition-colors"
+                  >
+                    «
+                  </button>
                 </div>
 
                 {/* Menu Điều hướng */}
@@ -1959,6 +2113,25 @@
                           <span>⚡</span>
                           <span>Flash Sale Tự Động</span>
                         </span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('audit_logs')}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                          activeTab === 'audit_logs'
+                            ? 'bg-[#27272a] text-orange-400 font-bold border border-orange-500/30'
+                            : 'text-slate-400 hover:bg-[#202024] hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span>📜</span>
+                          <span>Nhật Ký Hoạt Động</span>
+                        </span>
+                        {auditLogs.length > 0 && (
+                          <span className="text-[10px] bg-[#27272a] text-slate-400 font-bold px-1.5 py-0.2 rounded-full">
+                            {auditLogs.length}
+                          </span>
+                        )}
                       </button>
 
                       {/* Mục Lớn: Quản Lý Tài Khoản & Phân Quyền */}
@@ -2125,10 +2298,18 @@
             {/* MAIN WORKSPACE DUY NHẤT */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#121214]">
               {/* Topbar */}
-              <header className="h-14 border-b border-[#27272a] px-6 flex items-center justify-between shrink-0 bg-[#18181b]/60 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-sm font-bold text-slate-100">
-                    {activeTab === 'overview' && 'MedusaJS Dashboard: Tổng Quan Doanh Thu & Dữ Liệu Neon DB'}
+              <header className="h-14 border-b border-[#27272a] px-4 flex items-center justify-between shrink-0 bg-[#18181b]/60 backdrop-blur-md">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen((v) => !v)}
+                    title={sidebarOpen ? 'Thu gọn menu' : 'Mở menu'}
+                    className="w-9 h-9 rounded-xl bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center text-base font-black shadow-sm shrink-0 transition-colors"
+                  >
+                    ☰
+                  </button>
+                  <h2 className="text-sm font-bold text-slate-100 truncate">
+                    {activeTab === 'overview' && 'MedusaJS Dashboard: Tổng Quan Doanh Thu'}
                     {activeTab === 'categories' && 'Medusa Commerce: Quản Lý Danh Mục Sản Phẩm (PostgreSQL)'}
                     {activeTab === 'collections' && 'Medusa Commerce: Quản Lý Bộ Sưu Tập (Collections)'}
                     {activeTab === 'reviews' && 'Medusa Commerce: Kiểm Duyệt Đánh Giá Khách Hàng'}
@@ -2140,6 +2321,7 @@
                     {activeTab === 'orders' && 'Medusa Fulfillment: Quản Lý Đơn Hàng'}
                     {activeTab === 'shipping_zones' && 'Medusa Shipping: Khu Vực Giao Hàng & Biểu Phí'}
                     {activeTab === 'flash_sales' && 'Medusa Sales: Chiến Dịch Flash Sale Tự Động'}
+                    {activeTab === 'audit_logs' && 'Hệ Thống: Nhật Ký Hoạt Động Quản Trị Viên'}
                     {activeTab === 'customers' && 'Khách Hàng Thành Viên (Xác Thực Gmail OTP)'}
                     {activeTab === 'posts' && 'PayloadCMS: Quản Trị Cẩm Nang Nuôi Mèo (Xem & Chỉnh Sửa Trực Tiếp)'}
                     {activeTab === 'banners' && 'PayloadCMS: Quản Lý Banner Trang Chủ & Khuyến Mãi'}
@@ -2151,9 +2333,6 @@
                     {activeTab === 'page_product_detail' && 'PayloadCMS: Chỉnh Sửa Trang Chi Tiết Sản Phẩm'}
                     {activeTab === 'page_news' && 'PayloadCMS: Chỉnh Sửa Trang Tin Tức & Cẩm Nang'}
                   </h2>
-                  <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> 100% Đồng Bộ 1 Giao Diện
-                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -2267,11 +2446,13 @@
                   </button>
 
                   <button
-                    onClick={() => { fetchPayloadPosts(); }}
-                    title="Tải lại dữ liệu"
-                    className="p-1.5 text-slate-400 hover:text-slate-100 bg-[#27272a] hover:bg-[#323238] rounded-lg border border-[#3f3f46]"
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-admin-ai'))}
+                    title="Mở Trợ Lý AI Admin"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 rounded-lg shadow-sm whitespace-nowrap shrink-0"
                   >
-                    🔄
+                    <span>✨</span>
+                    <span>Trợ Lý AI</span>
                   </button>
                 </div>
               </header>
@@ -2281,11 +2462,159 @@
                 <div className={isCustomizerTab ? 'w-[430px] xl:w-[470px] shrink-0 overflow-auto p-4 border-r border-[#27272a] bg-[#121214]' : 'w-full'}>
 
                 {/* 0. TAB TỔNG QUAN DOANH THU & DỮ LIỆU THẬT */}
+                {activeTab === 'audit_logs' && (
+                  <div className="space-y-4">
+                    <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-100">📜 Nhật Ký Hoạt Động Admin</h3>
+                          <p className="text-xs text-slate-400 mt-0.5">Tự động ghi lại mọi thao tác thêm, sửa, xóa sản phẩm, đơn hàng, voucher và nhập Excel.</p>
+                        </div>
+                        <span className="text-xs font-bold text-orange-400 bg-orange-950/50 border border-orange-800/40 px-3 py-1 rounded-full">
+                          {auditLogs.length} hoạt động gần nhất
+                        </span>
+                      </div>
+                      {auditLogs.length === 0 ? (
+                        <div className="py-12 text-center text-xs text-slate-400">
+                          Chưa có nhật ký hoạt động nào. Hãy thử thêm/sửa/xóa sản phẩm hoặc nhập Excel qua Trợ lý AI!
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-[#27272a] text-slate-400 uppercase text-[10px]">
+                                <th className="py-2.5 px-3">Thời gian</th>
+                                <th className="py-2.5 px-3">Người thực hiện</th>
+                                <th className="py-2.5 px-3">Hành động</th>
+                                <th className="py-2.5 px-3">Đối tượng</th>
+                                <th className="py-2.5 px-3">Chi tiết</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#27272a]">
+                              {auditLogs.map((log) => (
+                                <tr
+                                  key={log.id}
+                                  onClick={() => setSelectedAuditLog(log)}
+                                  className="hover:bg-[#202024] cursor-pointer transition-colors"
+                                  title="Bấm để xem chi tiết hoạt động"
+                                >
+                                  <td className="py-2.5 px-3 text-slate-400 whitespace-nowrap font-mono text-[11px]">
+                                    {new Date(log.created_at).toLocaleString('vi-VN')}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-slate-200 whitespace-nowrap">{log.actor}</td>
+                                  <td className="py-2.5 px-3 whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded-md bg-orange-950/60 border border-orange-800/40 text-orange-300 font-bold text-[10px]">
+                                      {log.action}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-slate-300 font-semibold">{log.target || '—'}</td>
+                                  <td className="py-2.5 px-3 text-slate-400">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span>{log.detail}</span>
+                                      <span className="text-[10px] text-orange-400 font-bold shrink-0">Xem chi tiết →</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedAuditLog && (
+                      <div
+                        className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                        onClick={() => setSelectedAuditLog(null)}
+                      >
+                        <div
+                          className="w-full max-w-2xl max-h-[85vh] bg-[#18181b] border border-[#3f3f46] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-5 py-3.5 border-b border-[#27272a] flex items-center justify-between">
+                            <div>
+                              <h4 className="text-sm font-extrabold text-slate-100">📜 Chi Tiết Hoạt Động</h4>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                {new Date(selectedAuditLog.created_at).toLocaleString('vi-VN')} • {selectedAuditLog.actor}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAuditLog(null)}
+                              className="w-7 h-7 rounded-lg bg-[#27272a] hover:bg-[#323238] text-slate-300 font-bold text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <div className="p-5 overflow-y-auto space-y-4 text-xs">
+                            <div className="grid grid-cols-2 gap-3 bg-[#121214] p-3.5 rounded-xl border border-[#27272a]">
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Hành động</p>
+                                <p className="text-orange-400 font-bold mt-0.5">{selectedAuditLog.action}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Đối tượng</p>
+                                <p className="text-slate-200 font-bold mt-0.5">{selectedAuditLog.target || '—'}</p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Tóm tắt</p>
+                                <p className="text-slate-300 mt-0.5">{selectedAuditLog.detail}</p>
+                              </div>
+                            </div>
+
+                            {Array.isArray(selectedAuditLog.items) && selectedAuditLog.items.length > 0 ? (
+                              <div className="space-y-2.5">
+                                <p className="text-[11px] font-bold text-slate-200 uppercase">
+                                  Danh sách chi tiết ({selectedAuditLog.items.length} mục)
+                                </p>
+                                <div className="space-y-2">
+                                  {selectedAuditLog.items.map((it, idx) => (
+                                    <div key={idx} className="p-3 rounded-xl bg-[#121214] border border-[#27272a] flex gap-3 items-start">
+                                      {it.image && (
+                                        <img src={it.image} alt={it.name || ''} className="w-14 h-14 rounded-lg object-cover border border-[#3f3f46] shrink-0" />
+                                      )}
+                                      <div className="flex-1 min-w-0 space-y-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <p className="font-bold text-slate-100 truncate">{it.name || '—'}</p>
+                                          {it.price ? (
+                                            <span className="text-orange-400 font-extrabold whitespace-nowrap">
+                                              {Number(it.price).toLocaleString('vi-VN')}₫
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">
+                                          {it.sku && <span><strong>SKU:</strong> <span className="font-mono text-slate-300">{it.sku}</span></span>}
+                                          {it.category && <span><strong>Danh mục:</strong> {it.category}</span>}
+                                          {it.weight && <span><strong>Size / Quy cách:</strong> {it.weight}</span>}
+                                          {it.inventory !== '' && it.inventory !== undefined && <span><strong>Tồn kho:</strong> {it.inventory}</span>}
+                                        </div>
+                                        {it.description && (
+                                          <p className="text-[11px] text-slate-400 line-clamp-2">{it.description}</p>
+                                        )}
+                                        {it.note && (
+                                          <p className="text-[11px] text-emerald-400 font-semibold">• {it.note}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 rounded-xl bg-[#121214] border border-[#27272a] text-[11px] text-slate-400">
+                                Hoạt động này được ghi trước khi bật lưu danh sách chi tiết từng thuộc tính. Các hoạt động mới từ giờ sẽ hiển thị đầy đủ hình ảnh, tên, SKU, danh mục, size, giá, tồn kho và mô tả tại đây.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {activeTab === 'overview' && (
                   <div className="space-y-6 max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-[#18181b] p-5 rounded-xl border border-[#27272a] space-y-1">
-                        <p className="text-xs text-slate-400 font-semibold">💰 Tổng Doanh Thu (Neon DB)</p>
+                        <p className="text-xs text-slate-400 font-semibold">💰 Tổng Doanh Thu</p>
                         <p className="text-2xl font-black text-orange-400">{Number(dbStats.total_revenue || 0).toLocaleString('vi-VN')} ₫</p>
                         <p className="text-[11px] text-emerald-400 font-semibold">Từ {dbStats.orders_count} đơn hàng thực tế</p>
                       </div>
@@ -2427,7 +2756,7 @@
                   <div className="space-y-4 max-w-6xl mx-auto">
                     <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a] flex items-center justify-between">
                       <div>
-                        <h3 className="font-bold text-slate-100 text-sm">📥 Kiểm Soát Tồn Kho Theo Sản Phẩm (Neon DB)</h3>
+                        <h3 className="font-bold text-slate-100 text-sm">📥 Kiểm Soát Tồn Kho Theo Sản Phẩm</h3>
                         <p className="text-xs text-slate-400">Chỉnh trực tiếp số lượng tồn kho, cảnh báo tự động khi sắp hết hàng (&lt; 20 sản phẩm).</p>
                       </div>
                       <button onClick={fetchMedusaDbProducts} className="px-3 py-1.5 text-xs font-bold bg-[#27272a] text-slate-200 rounded-lg">🔄 Đồng bộ kho</button>
@@ -2490,7 +2819,7 @@
                 {activeTab === 'price_lists' && (
                   <div className="space-y-4 max-w-6xl mx-auto">
                     <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
-                      <h3 className="font-bold text-slate-100 text-sm">💰 Quản Lý Bảng Giá & Giá Khuyến Mãi (Lưu Trực Tiếp Neon DB)</h3>
+                      <h3 className="font-bold text-slate-100 text-sm">💰 Quản Lý Bảng Giá & Giá Khuyến Mãi</h3>
                       <p className="text-xs text-slate-400">Chỉnh Giá bán thực tế và Giá niêm yết gốc của từng sản phẩm; Storefront tự động tính % giảm giá.</p>
                     </div>
                     <div className="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden shadow-xl">
@@ -2594,7 +2923,7 @@
                 {activeTab === 'roles' && (
                   <div className="space-y-5 max-w-6xl mx-auto">
                     <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a]">
-                      <h3 className="font-bold text-slate-100 text-sm">🛡️ Ma Trận Phân Quyền Chi Tiết Theo Chức Năng (Lưu Trực Tiếp Neon DB)</h3>
+                      <h3 className="font-bold text-slate-100 text-sm">🛡️ Ma Trận Phân Quyền Chi Tiết Theo Chức Năng</h3>
                       <p className="text-xs text-slate-400">Tích chọn quyền Xem / Thêm / Sửa / Xóa cho từng vai trò nhân viên trong hệ thống Admin.</p>
                     </div>
 
@@ -2931,7 +3260,7 @@
                           ➕ Tạo Đơn Nháp (POS)
                         </button>
                         <span className="text-[11px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2.5 py-1 rounded-full">
-                          🐘 Neon PostgreSQL • {orders.length} đơn hàng
+                          {orders.length} đơn hàng
                         </span>
                       </div>
                     </div>
@@ -2996,9 +3325,9 @@
                       )}
                       <div className="divide-y divide-[#27272a] text-xs">
                         {ordersLoading ? (
-                          <div className="py-10 text-center text-slate-400">Đang tải danh sách đơn hàng từ Neon PostgreSQL...</div>
+                          <div className="py-10 text-center text-slate-400">Đang tải danh sách đơn hàng...</div>
                         ) : orders.length === 0 ? (
-                          <div className="py-10 text-center text-slate-400">Chưa có đơn hàng nào trong Neon PostgreSQL.</div>
+                          <div className="py-10 text-center text-slate-400">Chưa có đơn hàng nào trên hệ thống.</div>
                         ) : orders.map((ord) => {
                           const st = ORDER_STATUS_LABELS[ord.status] || ORDER_STATUS_LABELS.pending;
                           return (
@@ -3119,7 +3448,7 @@
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2.5 py-1 rounded-full">
-                          🐘 Neon voucher • {vouchers.length} mã
+                          {vouchers.length} mã
                         </span>
                         <button
                           onClick={handleOpenCreatePromo}
@@ -3144,11 +3473,11 @@
 
                     {vouchersLoading ? (
                       <div className="bg-[#18181b] rounded-xl border border-[#27272a] p-10 text-center text-xs text-slate-400">
-                        Đang tải danh sách voucher từ Neon PostgreSQL...
+                        Đang tải danh sách voucher...
                       </div>
                     ) : vouchers.length === 0 ? (
                       <div className="bg-[#18181b] rounded-xl border border-[#27272a] p-10 text-center text-xs text-slate-400">
-                        Chưa có mã giảm giá nào trong bảng <span className="font-mono text-orange-400">voucher</span> trên Neon. Hãy bấm <b>➕ Tạo Khuyến Mãi</b> hoặc <b>🚚 Tạo Mã Free Ship</b>!
+                        Chưa có mã giảm giá nào trong bảng <span className="font-mono text-orange-400">voucher</span>. Hãy bấm <b>➕ Tạo Khuyến Mãi</b> hoặc <b>🚚 Tạo Mã Free Ship</b>!
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -3242,8 +3571,8 @@
                               {editingVoucher
                                 ? `Chỉnh sửa mã: ${editingVoucher.code}`
                                 : voucherForm.type === 'freeship'
-                                ? '🚚 Tạo Mã Free Ship (Lưu Neon)'
-                                : '🏷️ Tạo Khuyến Mãi Mới (Lưu Neon)'}
+                                ? '🚚 Tạo Mã Free Ship'
+                                : '🏷️ Tạo Khuyến Mãi Mới'}
                             </h3>
                             <button onClick={() => setIsVoucherModalOpen(false)} className="text-slate-400 hover:text-slate-200 font-bold">✕</button>
                           </div>
@@ -3408,7 +3737,7 @@
                                 Hủy
                               </button>
                               <button type="submit" className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-bold">
-                                {editingVoucher ? 'Lưu Thay Đổi' : 'Lưu Vào Neon'}
+                                {editingVoucher ? 'Lưu Thay Đổi' : 'Lưu Lại'}
                               </button>
                             </div>
                           </form>
@@ -3424,7 +3753,7 @@
                     <div className="bg-[#18181b] p-4 rounded-xl border border-[#27272a] flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h3 className="font-bold text-slate-100 text-sm">🗺️ Cấu Hình Khu Vực Giao Hàng & Ngưỡng Freeship (Saleor Shipping Zones)</h3>
-                        <p className="text-xs text-slate-400">Quản lý phí vận chuyển theo khu vực và ngưỡng miễn phí vận chuyển lưu trên Neon PostgreSQL.</p>
+                        <p className="text-xs text-slate-400">Quản lý phí vận chuyển theo khu vực và ngưỡng miễn phí vận chuyển lưu PostgreSQL.</p>
                       </div>
                       <button
                         onClick={() => {
@@ -3523,7 +3852,7 @@
                           value={customerSearch}
                           onChange={(e) => setCustomerSearch(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') fetchCustomers(); }}
-                          placeholder="Tìm theo tên, email, SĐT trên Neon..."
+                          placeholder="Tìm theo tên, email, SĐT..."
                           className="w-72 px-3 py-1.5 text-xs rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-200 focus:outline-none focus:border-orange-500"
                         />
                         <select
@@ -3544,7 +3873,7 @@
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-[11px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/50 px-2.5 py-1 rounded-full">
-                          🐘 Neon PostgreSQL • {customers.length} tài khoản
+                          {customers.length} tài khoản
                         </span>
                         <button
                           onClick={handleOpenCreateCustomer}
@@ -3575,9 +3904,9 @@
                         </thead>
                         <tbody className="divide-y divide-[#27272a]">
                           {customersLoading ? (
-                            <tr><td colSpan="6" className="py-8 text-center text-slate-400">Đang tải danh sách tài khoản từ Neon PostgreSQL...</td></tr>
+                            <tr><td colSpan="6" className="py-8 text-center text-slate-400">Đang tải danh sách tài khoản...</td></tr>
                           ) : customers.length === 0 ? (
-                            <tr><td colSpan="6" className="py-8 text-center text-slate-400">Chưa có tài khoản khách hàng nào trong Neon PostgreSQL.</td></tr>
+                            <tr><td colSpan="6" className="py-8 text-center text-slate-400">Chưa có tài khoản khách hàng nào trên hệ thống.</td></tr>
                           ) : customers.map((c) => (
                             <tr key={c.id} className="hover:bg-[#202024] transition-colors">
                               <td className="py-3 px-4">
@@ -4500,6 +4829,33 @@
                       </div>
                     </div>
 
+                    {/* PHÂN LOẠI SIZE (S / M / L / XL / XXL) */}
+                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-orange-300 uppercase text-[11px]">📏 Phân loại Size (S / M / L / XL / XXL)</label>
+                        <span className="text-[10px] text-slate-400">Chọn nhanh để tự tạo biến thể theo size</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['S', 'M', 'L', 'XL', 'XXL'].map((sz) => {
+                          const active = (productForm.sizes || []).includes(sz);
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => handleToggleProductSize(sz)}
+                              className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold border transition-all ${
+                                active
+                                  ? 'bg-orange-600 text-white border-orange-500 shadow-sm'
+                                  : 'bg-[#18181b] text-slate-300 border-[#3f3f46] hover:border-orange-500/60'
+                              }`}
+                            >
+                              Size {sz}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* NHÓM 3 (SALEOR CATALOG): BIẾN THỂ SẢN PHẨM (VARIANTS) & THUỘC TÍNH LỌC (ATTRIBUTES) */}
                     <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2">
                       <div className="flex items-center justify-between">
@@ -4543,32 +4899,78 @@
                       ))}
                     </div>
 
-                    <div>
-                      <label className="block font-bold text-slate-300 uppercase mb-1">URL Ảnh sản phẩm (Vercel Blob)</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="url"
-                          value={productForm.image}
-                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                          className="flex-1 bg-[#121214] border border-[#27272a] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
-                        />
-                        <label className="cursor-pointer shrink-0 px-3 py-2 bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] rounded-lg font-bold text-slate-200 transition-colors">
-                          {uploadingTarget === 'product' ? '⏳ Đang tải...' : '📁 Chọn ảnh từ máy'}
+                    <div className="bg-[#121214] p-3 rounded-xl border border-[#27272a] space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="font-bold text-slate-200 uppercase text-[11px]">🖼️ Hình ảnh sản phẩm (Hỗ trợ nhiều ảnh)</label>
+                        <label className="cursor-pointer shrink-0 px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-[11px] transition-colors">
+                          📁 Chọn nhiều ảnh từ máy
                           <input
                             type="file"
                             accept="image/*"
+                            multiple
                             className="hidden"
-                            disabled={uploadingTarget === 'product'}
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleUploadImage(file, 'product');
+                              handlePickMultipleProductImages(e.target.files);
                               e.target.value = '';
                             }}
                           />
                         </label>
                       </div>
-                      {productForm.image && (
-                        <img src={productForm.image} alt="Preview" className="mt-2 h-16 w-16 rounded-lg object-cover border border-[#27272a]" />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={productForm.image}
+                          onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                          placeholder="Dán link ảnh chính hoặc bấm nút + để thêm vào thư viện..."
+                          className="flex-1 bg-[#18181b] border border-[#3f3f46] px-3 py-2 rounded-lg text-slate-100 outline-none focus:border-orange-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = (productForm.image || '').trim();
+                            if (!url) return;
+                            setProductForm((prev) => {
+                              const list = Array.isArray(prev.images) ? prev.images : [];
+                              return list.includes(url) ? prev : { ...prev, images: [...list, url] };
+                            });
+                          }}
+                          className="px-3 py-2 rounded-lg bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] text-slate-200 font-bold text-xs shrink-0"
+                        >
+                          + Thêm ảnh
+                        </button>
+                      </div>
+                      {((productForm.images && productForm.images.length > 0) || productForm.image) && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {(productForm.images && productForm.images.length > 0 ? productForm.images : [productForm.image]).map((imgUrl, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={imgUrl}
+                                alt={`Ảnh ${idx + 1}`}
+                                onClick={() => setProductForm((prev) => ({ ...prev, image: imgUrl }))}
+                                title="Bấm để đặt làm ảnh đại diện"
+                                className={`h-16 w-16 rounded-lg object-cover border-2 cursor-pointer ${
+                                  productForm.image === imgUrl ? 'border-orange-500' : 'border-[#3f3f46]'
+                                }`}
+                              />
+                              {productForm.image === imgUrl && (
+                                <span className="absolute bottom-0.5 left-0.5 px-1 py-0.2 rounded bg-orange-600 text-[9px] font-bold text-white">Chính</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setProductForm((prev) => {
+                                    const nextImages = (prev.images || []).filter((_, i) => i !== idx);
+                                    const nextMain = prev.image === imgUrl ? (nextImages[0] || '') : prev.image;
+                                    return { ...prev, images: nextImages, image: nextMain };
+                                  });
+                                }}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center shadow"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
 
@@ -5243,26 +5645,183 @@
                 </div>
               </div>
             )}
+
+            {/* DOCKED IDE-STYLE AI SIDE PANEL (KÉO GIÃN KÍCH THƯỚC ĐƯỢC) */}
+            <AdminAiCopilot />
           </div>
         );
       }
 
       function AdminAiCopilot() {
         const [open, setOpen] = useState(false);
+        const [panelWidth, setPanelWidth] = useState(400);
+        const [isResizing, setIsResizing] = useState(false);
         const [input, setInput] = useState('');
+        const [attachedImage, setAttachedImage] = useState('');
+        const [excelFileName, setExcelFileName] = useState('');
+        const [excelRows, setExcelRows] = useState([]);
+        const [folderImages, setFolderImages] = useState({});
+        const [attachMenuOpen, setAttachMenuOpen] = useState(false);
         const [loading, setLoading] = useState(false);
+        const fileInputRef = useRef(null);
+        const excelInputRef = useRef(null);
+        const folderInputRef = useRef(null);
+
+        useEffect(() => {
+          if (!isResizing) return;
+          const handleMouseMove = (e) => {
+            const nextW = Math.min(760, Math.max(320, window.innerWidth - e.clientX));
+            setPanelWidth(nextW);
+          };
+          const handleMouseUp = () => setIsResizing(false);
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('mouseup', handleMouseUp);
+          document.body.style.userSelect = 'none';
+          document.body.style.cursor = 'col-resize';
+          return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+          };
+        }, [isResizing]);
         const [messages, setMessages] = useState([
           {
             role: 'ai',
-            text: 'Chào Admin! Mình là Trợ lý AI Mèo Cưng (Gemini). Bạn cứ nhắn mình để thao tác nhanh lên Neon:\n• "Tạo mã giảm giá SALE20 giảm 20% đơn tối thiểu 200k"\n• "Tạo mã freeship FREESHIP99 đơn tối thiểu 100k"\n• "Thêm sản phẩm Hạt Me-O cá ngừ giá 120k tồn kho 50"\n• "Đổi trạng thái đơn #MC310691 sang shipping"\n• "Thống kê đơn hàng và khách hàng hôm nay"',
+            text: 'Chào Admin! Mình là Trợ lý AI Mèo Cưng. Bạn cần hỗ trợ gì cứ nhắn nhé (nhắn "bạn có thể làm gì" để xem các việc mình làm được).',
           },
         ]);
 
+        useEffect(() => {
+          const onToggle = () => setOpen((v) => !v);
+          window.addEventListener('toggle-admin-ai', onToggle);
+          return () => window.removeEventListener('toggle-admin-ai', onToggle);
+        }, []);
+
+        const handlePickImage = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              const maxSide = 600;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxSide || h > maxSide) {
+                if (w >= h) { h = Math.round((h * maxSide) / w); w = maxSide; }
+                else { w = Math.round((w * maxSide) / h); h = maxSide; }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, w, h);
+              setAttachedImage(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = reader.result;
+          };
+          reader.readAsDataURL(file);
+          e.target.value = '';
+        };
+
+        const compressImageFile = (file) => new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+              const maxSide = 600;
+              let w = img.width;
+              let h = img.height;
+              if (w > maxSide || h > maxSide) {
+                if (w >= h) { h = Math.round((h * maxSide) / w); w = maxSide; }
+                else { w = Math.round((w * maxSide) / h); h = maxSide; }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.78));
+            };
+            img.onerror = () => resolve('');
+            img.src = reader.result;
+          };
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(file);
+        });
+
+        const handlePickExcel = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const wb = window.XLSX.read(ev.target.result, { type: 'array' });
+              const firstSheet = wb.SheetNames[0];
+              const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[firstSheet], { defval: '' });
+              setExcelFileName(file.name);
+              setExcelRows(rows);
+            } catch (_err) {
+              alert('Không đọc được file Excel. Vui lòng kiểm tra định dạng .xlsx / .xls / .csv');
+            }
+          };
+          reader.readAsArrayBuffer(file);
+          e.target.value = '';
+        };
+
+        const handlePickImageFolder = async (e) => {
+          const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'));
+          if (!files.length) return;
+          const map = {};
+          for (const f of files.slice(0, 60)) {
+            const dataUrl = await compressImageFile(f);
+            if (dataUrl) {
+              map[f.name.toLowerCase()] = dataUrl;
+              const noExt = f.name.replace(/\.[^.]+$/, '').toLowerCase();
+              map[noExt] = dataUrl;
+            }
+          }
+          setFolderImages(map);
+          e.target.value = '';
+        };
+
         const sendMessage = async (textOverride) => {
-          const msg = (textOverride !== undefined ? textOverride : input).trim();
+          const msg = (textOverride !== undefined ? textOverride : input).trim() || (excelRows.length > 0 ? `Nhập ${excelRows.length} sản phẩm từ Excel` : '');
           if (!msg || loading) return;
-          setMessages((prev) => [...prev, { role: 'user', text: msg }]);
+          const imgToSend = attachedImage;
+          const enrichedExcelRows = excelRows.map((row) => {
+            const copy = { ...row };
+            const imgKey = Object.keys(copy).find((k) => /^(ảnh|anh|hình|hinh|image|img|photo|thumbnail|url ảnh|link ảnh|file ảnh)/i.test(k.trim()));
+            const rawImg = imgKey ? String(copy[imgKey] || '').trim() : '';
+            if (rawImg && !rawImg.startsWith('http') && !rawImg.startsWith('data:')) {
+              const base = rawImg.split(/[\\/]/).pop().toLowerCase();
+              const noExt = base.replace(/\.[^.]+$/, '');
+              if (folderImages[base]) copy.__matchedImage = folderImages[base];
+              else if (folderImages[noExt]) copy.__matchedImage = folderImages[noExt];
+            }
+            if (!copy.__matchedImage) {
+              const skuKey = Object.keys(copy).find((k) => /sku|ma|mã/i.test(k));
+              const nameKey = Object.keys(copy).find((k) => /ten|tên|name|title/i.test(k));
+              const skuVal = skuKey ? String(copy[skuKey] || '').trim().toLowerCase() : '';
+              const nameVal = nameKey ? String(copy[nameKey] || '').trim().toLowerCase() : '';
+              if (skuVal && folderImages[skuVal]) copy.__matchedImage = folderImages[skuVal];
+              else if (nameVal && folderImages[nameVal]) copy.__matchedImage = folderImages[nameVal];
+            }
+            return copy;
+          });
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'user',
+              text: `${msg}${excelRows.length ? `\n📊 File: ${excelFileName} (${excelRows.length} dòng)` : ''}${Object.keys(folderImages).length ? ` • 📁 Đã chọn thư mục ảnh` : ''}`,
+              image: imgToSend || undefined,
+            },
+          ]);
           setInput('');
+          setAttachedImage('');
+          setExcelFileName('');
+          setExcelRows([]);
           setLoading(true);
 
           const endpoints = window.location.hostname === 'localhost'
@@ -5274,11 +5833,18 @@
               const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg }),
+                body: JSON.stringify({
+                  message: msg,
+                  image: imgToSend || undefined,
+                  excelRows: enrichedExcelRows.length ? enrichedExcelRows : undefined,
+                }),
               });
               const data = await res.json().catch(() => ({}));
               if (res.ok) {
                 setMessages((prev) => [...prev, { role: 'ai', text: data.reply || 'Đã hoàn tất!' }]);
+                if (data.actionExecuted) {
+                  window.dispatchEvent(new CustomEvent('admin-data-changed', { detail: { targets: data.refreshTargets || [] } }));
+                }
                 setLoading(false);
                 return;
               } else {
@@ -5292,92 +5858,189 @@
           setLoading(false);
         };
 
+        if (!open) return null;
+
         return (
-          <div className="fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3">
-            {open && (
-              <div className="w-[360px] max-w-[92vw] h-[480px] bg-[#18181b] border border-[#3f3f46] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#27272a] bg-gradient-to-r from-orange-600/20 to-indigo-600/20 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-orange-600 text-white flex items-center justify-center text-sm">✨</span>
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-100">Trợ Lý AI Admin (Gemini)</p>
-                      <p className="text-[10px] text-emerald-400">Thao tác trực tiếp Neon PostgreSQL</p>
-                    </div>
+          <aside
+            style={{ width: `${panelWidth}px` }}
+            className="h-screen max-w-[92vw] shrink-0 bg-[#18181b] border-l border-[#27272a] shadow-2xl flex relative z-30 overflow-hidden"
+          >
+            {/* Thanh kéo giãn kích thước giống Antigravity IDE */}
+            <div
+              onMouseDown={() => setIsResizing(true)}
+              title="Kéo trái / phải để chỉnh độ rộng khung Trợ lý AI"
+              className={`w-1.5 h-full cursor-col-resize shrink-0 transition-colors ${isResizing ? 'bg-orange-500' : 'bg-transparent hover:bg-orange-500/60'}`}
+            />
+            <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+            <div className="h-14 px-4 border-b border-[#27272a] flex items-center justify-between shrink-0 bg-[#18181b]">
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-600 to-amber-500 text-white flex items-center justify-center text-sm shadow-sm">✨</span>
+                <div>
+                  <p className="text-xs font-extrabold text-slate-100">Trợ Lý AI Admin</p>
+                  <p className="text-[10px] text-emerald-400">Hỗ trợ quản lý cửa hàng nhanh</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                title="Đóng Trợ Lý AI"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-100 hover:bg-[#27272a] font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl whitespace-pre-line leading-relaxed ${
+                    m.role === 'user'
+                      ? 'bg-orange-600 text-white font-medium'
+                      : 'bg-[#121214] border border-[#27272a] text-slate-200'
+                  }`}>
+                    {m.image && (
+                      <img src={m.image} alt="Đính kèm" className="w-40 h-28 object-cover rounded-xl mb-2 border border-white/20" />
+                    )}
+                    {m.text}
                   </div>
-                  <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-100 font-bold text-sm">✕</button>
                 </div>
+              ))}
+              {loading && (
+                <div className="text-[11px] text-slate-400 italic px-2">✨ Trợ lý AI đang thực thi...</div>
+              )}
+            </div>
 
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
-                  {messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] px-3 py-2 rounded-xl whitespace-pre-line leading-relaxed ${
-                        m.role === 'user'
-                          ? 'bg-orange-600 text-white font-medium'
-                          : 'bg-[#121214] border border-[#27272a] text-slate-200'
-                      }`}>
-                        {m.text}
-                      </div>
+            <div className="p-3 border-t border-[#27272a] bg-[#141416] shrink-0">
+              <form
+                onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                className="rounded-2xl border border-[#3f3f46] bg-[#121214] p-2.5 flex flex-col gap-2 focus-within:border-orange-500 transition-colors"
+              >
+                {attachedImage && (
+                  <div className="flex items-center gap-2 pb-1">
+                    <div className="relative">
+                      <img src={attachedImage} alt="Preview" className="w-12 h-12 object-cover rounded-xl border border-orange-500/50" />
+                      <button
+                        type="button"
+                        onClick={() => setAttachedImage('')}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center font-bold"
+                      >
+                        ✕
+                      </button>
                     </div>
-                  ))}
-                  {loading && (
-                    <div className="text-[11px] text-slate-400 italic px-2">✨ Trợ lý AI đang thực thi...</div>
-                  )}
-                </div>
+                    <span className="text-[10px] text-emerald-400">Đã đính kèm ảnh sản phẩm</span>
+                  </div>
+                )}
 
-                <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-                  {[
-                    'Thống kê hôm nay',
-                    'Tạo mã FREESHIP99 freeship đơn 100k',
-                    'Tạo mã SALE15 giảm 15% đơn 150k',
-                  ].map((q) => (
+                {(excelRows.length > 0 || Object.keys(folderImages).length > 0) && (
+                  <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                    {excelRows.length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 text-[10px] font-bold">
+                        📊 {excelFileName} ({excelRows.length} dòng)
+                        <button type="button" onClick={() => { setExcelFileName(''); setExcelRows([]); }} className="ml-1 text-rose-400">✕</button>
+                      </span>
+                    )}
+                    {Object.keys(folderImages).length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 text-[10px] font-bold">
+                        📁 {Math.round(Object.keys(folderImages).length / 2)} ảnh trong thư mục
+                        <button type="button" onClick={() => setFolderImages({})} className="ml-1 text-rose-400">✕</button>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <textarea
+                  rows={2}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Nhập lệnh cho Trợ lý AI (Enter để gửi)..."
+                  className="w-full resize-none bg-transparent text-xs text-slate-100 outline-none placeholder:text-slate-500 px-1"
+                />
+
+                <div className="flex items-center justify-between pt-1">
+                  <div className="relative flex items-center gap-1.5">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePickImage}
+                      className="hidden"
+                    />
+                    <input
+                      ref={excelInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handlePickExcel}
+                      className="hidden"
+                    />
+                    <input
+                      ref={folderInputRef}
+                      type="file"
+                      webkitdirectory=""
+                      directory=""
+                      multiple
+                      accept="image/*"
+                      onChange={handlePickImageFolder}
+                      className="hidden"
+                    />
                     <button
-                      key={q}
                       type="button"
-                      onClick={() => sendMessage(q)}
-                      className="px-2 py-1 rounded-md bg-[#27272a] hover:bg-[#323238] text-[10px] text-slate-300 border border-[#3f3f46]"
+                      onClick={() => setAttachMenuOpen((v) => !v)}
+                      title="Đính kèm ảnh, file Excel hoặc thư mục ảnh"
+                      className="w-8 h-8 rounded-full bg-[#27272a] hover:bg-[#323238] border border-[#3f3f46] text-slate-200 flex items-center justify-center text-sm font-bold"
                     >
-                      {q}
+                      +
                     </button>
-                  ))}
-                </div>
+                    {attachMenuOpen && (
+                      <div className="absolute bottom-10 left-0 w-44 rounded-xl bg-[#18181b] border border-[#3f3f46] shadow-xl p-1.5 z-50 flex flex-col gap-0.5 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => { setAttachMenuOpen(false); fileInputRef.current && fileInputRef.current.click(); }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#27272a] text-slate-200 flex items-center gap-2 font-medium"
+                        >
+                          <span>📷</span><span>Chọn ảnh</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAttachMenuOpen(false); excelInputRef.current && excelInputRef.current.click(); }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#27272a] text-emerald-400 flex items-center gap-2 font-medium"
+                        >
+                          <span>📊</span><span>Chọn file Excel</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAttachMenuOpen(false); folderInputRef.current && folderInputRef.current.click(); }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#27272a] text-indigo-300 flex items-center gap-2 font-medium"
+                        >
+                          <span>📁</span><span>Chọn thư mục ảnh</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                <form
-                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-                  className="p-2.5 border-t border-[#27272a] flex gap-2 bg-[#141416]"
-                >
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Nhập lệnh cho AI (tạo mã, thêm SP, sửa đơn)..."
-                    className="flex-1 px-3 py-2 text-xs rounded-lg bg-[#121214] border border-[#3f3f46] text-slate-100 outline-none focus:border-orange-500"
-                  />
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-3.5 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold disabled:opacity-50"
+                    title="Gửi"
+                    className="w-8 h-8 rounded-full bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center text-sm font-bold disabled:opacity-50 shadow-sm"
                   >
-                    Gửi
+                    →
                   </button>
-                </form>
-              </div>
-            )}
-
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-extrabold text-xs shadow-xl shadow-orange-900/40 transition-transform hover:scale-105"
-            >
-              <span>✨</span>
-              <span>{open ? 'Đóng Trợ Lý AI' : 'Trợ Lý AI Admin'}</span>
-            </button>
-          </div>
+                </div>
+              </form>
+            </div>
+            </div>
+          </aside>
         );
       }
 
       ReactDOM.createRoot(document.getElementById('root')).render(
-        <React.Fragment>
-          <SingleUnifiedDashboard />
-          <AdminAiCopilot />
-        </React.Fragment>
+        <SingleUnifiedDashboard />
       );
     </script>
 </body>
